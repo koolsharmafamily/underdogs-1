@@ -259,16 +259,37 @@ export function ChapterCircle() {
 
 export function ChapterKeeper() {
   return (
-    <section data-chapter="4" aria-labelledby="ch-keeper" className="chapter flex min-h-svh items-end py-24 wide:items-center">
+    <section
+      id="concierge"
+      data-chapter="4"
+      aria-labelledby="ch-keeper"
+      className="chapter flex min-h-svh items-end py-24 wide:items-center scroll-mt-12"
+    >
+      <span id="goldie" className="sr-only" />
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <TextColumn className="chapter-body">
-          <p className="eyebrow">The keeper</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="eyebrow">Concierge · The Keeper</p>
+            <DemoTag />
+          </div>
           <h2 id="ch-keeper" className="font-serif text-3xl leading-tight text-heading sm:text-5xl">
             Meet Goldie.
           </h2>
           <p className="text-lg text-text-dim">
-            The coin, talking. Ask about nights, dress codes and plus-ones. Goldie never opens the door: the crew does.
+            The coin, talking. Ask about upcoming secret nights, dress codes, Nagpur Hinglish, or plus-ones. Goldie gives you the vibe; the crew reviews and opens the door.
           </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-text-dim">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface/60 px-2.5 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Demo mode active
+            </span>
+            <Link
+              href="/concierge"
+              className="text-accent underline-offset-4 hover:underline inline-flex items-center gap-1"
+            >
+              Open dedicated page <span aria-hidden>↗</span>
+            </Link>
+          </div>
           <GoldieChat />
         </TextColumn>
       </div>

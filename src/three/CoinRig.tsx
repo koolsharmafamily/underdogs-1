@@ -374,68 +374,12 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       if (parts.notches.instanceColor) parts.notches.instanceColor.needsUpdate = true;
     }
 
-    // Goldie waking up and expressing presence states (idle, listening, thinking, speaking, celebrating, hushed, sorry).
-    // Keep the 3D overlay meshes hidden when awake === 0 so Logo.jpg is 100% crisp and unobstructed on the main home page.
-    const gState = useStage.getState().goldieState;
-    const awake = Math.max(L.awake, gState !== "idle" ? 1 : 0);
-    const showOverlay = awake > 0.02;
-    parts.dome.visible = showOverlay;
-    parts.eyes[0].visible = showOverlay;
-    parts.eyes[1].visible = showOverlay;
-    parts.smile.visible = showOverlay;
-    parts.tongue.visible = showOverlay;
-
-    if (gState === "hushed") {
-      parts.onyxMaterial.emissiveIntensity = 0.02;
-    } else if (gState === "celebrating") {
-      parts.onyxMaterial.emissiveIntensity = 0.25;
-      if (!still) L.spin += dt * 4.5;
-    } else if (gState === "thinking") {
-      parts.onyxMaterial.emissiveIntensity = 0.16;
-      if (!still) L.spin += dt * 5.2;
-    } else {
-      parts.onyxMaterial.emissiveIntensity = awake * 0.12;
-    }
-
-    if (!still && showOverlay) {
-      if (gState === "speaking") {
-        parts.tongue.rotation.x = 0.22 + Math.abs(Math.sin(L.time * 14)) * 0.52;
-        parts.eyes[0].scale.set(1, 1, 1);
-        parts.eyes[1].scale.set(1, 1, 1);
-        parts.eyes[0].rotation.z = 0;
-        parts.eyes[1].rotation.z = 0;
-      } else if (gState === "listening") {
-        parts.tongue.rotation.x = 0.18;
-        const pulse = 1.12 + Math.sin(L.time * 6) * 0.06;
-        parts.eyes[0].scale.set(pulse, pulse * 1.15, 1);
-        parts.eyes[1].scale.set(pulse, pulse * 1.15, 1);
-        parts.eyes[0].rotation.z = 0;
-        parts.eyes[1].rotation.z = 0;
-      } else if (gState === "hushed") {
-        parts.tongue.rotation.x = 0.08;
-        parts.eyes[0].scale.set(1, 0.14, 1);
-        parts.eyes[1].scale.set(1, 0.14, 1);
-        parts.eyes[0].rotation.z = 0;
-        parts.eyes[1].rotation.z = 0;
-      } else if (gState === "sorry") {
-        parts.tongue.rotation.x = 0.12;
-        parts.eyes[0].scale.set(0.95, 0.7, 1);
-        parts.eyes[1].scale.set(0.95, 0.7, 1);
-        parts.eyes[0].rotation.z = 0.18;
-        parts.eyes[1].rotation.z = -0.18;
-      } else {
-        const period = awake > 0.5 ? 2.6 : 6;
-        const t = L.time % period;
-        const flick = t < 0.35 ? Math.sin((t / 0.35) * Math.PI) : 0;
-        parts.tongue.rotation.x = 0.25 + flick * (0.35 + awake * 0.3);
-        const blinkT = (L.time + 1.3) % 4.2;
-        const blink = blinkT < 0.16 ? 1 - Math.sin((blinkT / 0.16) * Math.PI) * 0.8 : 1;
-        parts.eyes[0].scale.set(1, blink, 1);
-        parts.eyes[1].scale.set(1, blink, 1);
-        parts.eyes[0].rotation.z = 0;
-        parts.eyes[1].rotation.z = 0;
-      }
-    }
+    // Keep fallback overlay meshes hidden so the bespoke 3D GLB coin remains 100% clean and unobstructed.
+    parts.dome.visible = false;
+    parts.eyes[0].visible = false;
+    parts.eyes[1].visible = false;
+    parts.smile.visible = false;
+    parts.tongue.visible = false;
 
     // Glints sweep the rim in turn, react to cursor velocity, and flash when clicked.
     const cursorSweep = Math.min(0.85, Math.hypot(motion.pointerVelX, motion.pointerVelY) * 1.35);
