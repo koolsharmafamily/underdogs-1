@@ -1,0 +1,64 @@
+/*
+  Underdogs Innercircle — design tokens
+  Sampled from Logo.jpg, Launch Post.png and Animation Theme.png on 27 Sep 2026.
+  Contrast ratios are against --ic-onyx (#141414). Replace with values from the
+  team's master files once they share vectors and exact brand colours.
+*/
+
+:root {
+  /* Blacks — the vault */
+  --ic-void: #050505;        /* onyx centre of the coin, deepest satin shadow */
+  --ic-onyx: #141414;        /* studio black behind the coin: page background */
+  --ic-satin-900: #23171c;   /* satin fold, warm plum-black: raised surfaces */
+  --ic-satin-700: #342528;   /* satin mid: borders on dark */
+  --ic-satin-500: #503731;   /* satin sheen: highlights only, never text (1.7:1) */
+  --ic-vein: #beb8b2;        /* marble vein: texture lines only */
+
+  /* Gold — the coin */
+  --ic-gold-900: #73572b;    /* deep shadow (2.7:1) */
+  --ic-gold-700: #977947;    /* shadow, rules, large text only (4.5:1) */
+  --ic-gold-500: #b2955e;    /* mid gold: small text OK (6.5:1) */
+  --ic-gold-300: #cbb074;    /* headings, links, icons (8.8:1) */
+  --ic-gold-100: #f3e0ac;    /* highlight (14.1:1) */
+  --ic-gold-bright: #f2d68f; /* launch-post gold under brighter light (13.0:1) */
+
+  /* Light — ivory and diamond */
+  --ic-ivory: #ece1cf;       /* body text on black (14.2:1) */
+  --ic-ivory-dim: #ded3c1;   /* secondary text (12.5:1) */
+  --ic-diamond: #e3d8cf;     /* pavé letters; glints go to pure white */
+  --ic-champagne: #e3bc95;   /* flute, warm highlight (10.4:1) */
+  --ic-confetti: #edbf79;    /* gold confetti (10.8:1) */
+
+  /* Accents — fire and the drop */
+  --ic-ember-deep: #7d4b2d;  /* flame base */
+  --ic-ember: #ae7144;       /* copper flame (4.6:1) */
+  --ic-ember-hot: #eab673;   /* flame tip (10.0:1) */
+  --ic-drop: #e32605;        /* the red drop: fills and badges only (4.0:1) */
+  --ic-drop-deep: #a01201;   /* drop shadow */
+  --ic-drop-hi: #f0421f;     /* the drop as text (4.8:1) */
+
+  /* Material recipes */
+  --ic-gold-metal: linear-gradient(135deg, #73572b 0%, #b2955e 26%, #f3e0ac 48%, #cbb074 66%, #977947 100%);
+  --ic-onyx-dome: radial-gradient(circle at 68% 28%, #2a2723 0%, #0b0b0b 36%, #050505 70%);
+  --ic-satin-sheen: linear-gradient(160deg, #050505 0%, #23171c 38%, #503731 50%, #23171c 62%, #050505 100%);
+  --ic-frame-rule: 1px solid var(--ic-gold-700); /* launch-post double rule: two of these, 6px apart */
+
+  /* Type — free close matches; swap for the team's licensed fonts if they have them */
+  --ic-font-display: "Cinzel", "Trajan Pro", serif;                      /* inscriptional caps: GRAND LAUNCH */
+  --ic-font-serif: "EB Garamond", "Cormorant Garamond", Georgia, serif;  /* wordmark line: Underdogs Innercircle */
+  --ic-font-ui: "Inter", system-ui, sans-serif;                          /* forms, chat, small labels */
+}
+
+/*
+  Night themes: each Innercircle night brings its own world; the gold coin never changes.
+  "aegean" is the La Dolce Vita look (Santorini after dark, 80s chrome accents).
+  Its values are approximate, read from their Instagram posters on screen:
+  sample them from the poster source files before launch.
+*/
+[data-theme="aegean"] {
+  --ic-night: #14224a;       /* page background: Aegean night navy */
+  --ic-aegean: #2451a6;      /* domes, links, accents */
+  --ic-sky: #8cbbe8;         /* highlights, glow */
+  --ic-whitewash: #f3efe6;   /* body text on navy, walls */
+  --ic-chrome: #d9dde3;      /* 80s chrome accents */
+}
