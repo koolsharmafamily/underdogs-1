@@ -38,11 +38,13 @@ export default function Stage() {
       if (motion.coinScreenR <= 8) return false;
       const dx = clientX - motion.coinScreenX;
       const dy = clientY - motion.coinScreenY;
-      return Math.hypot(dx, dy) <= motion.coinScreenR * 1.08;
+      return Math.hypot(dx, dy) <= motion.coinScreenR * 1.15;
     };
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 || isInteractiveDomTarget(e.target)) return;
+      motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
+      motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
       if (!isInsideCoin(e.clientX, e.clientY)) return;
       dragging = true;
       motion.isDraggingCoin = true;

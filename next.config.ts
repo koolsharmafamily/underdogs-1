@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
     "/**": [
       "./src/styles/innercircle-tokens.css",
       "./public/brand/logo.jpg",
+      "./public/models/coin-3d.glb",
+      "./public/models/textures/*",
       "./node_modules/@fontsource/cinzel/files/cinzel-latin-600-normal.woff",
       "./node_modules/@fontsource/eb-garamond/files/eb-garamond-latin-500-normal.woff",
       "./node_modules/@electric-sql/pglite/dist/*.wasm",

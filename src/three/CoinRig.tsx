@@ -49,6 +49,7 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
   const glints = useRef<Sprite[]>([]);
   const chrome = useRef<Group>(null!);
   const specLight = useRef<PointLight>(null!);
+  const rimLight = useRef<PointLight>(null!);
   const { invalidate } = useThree();
 
   const full = tier === "full";
@@ -260,13 +261,77 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       follower.current.scale.copy(root.scale);
     }
 
+    // Smooth responsive camera dolly & multi-layered holographic parallax
+    const baseCamZ = narrow ? 7.1 : 6.2;
+    const camTargetX = still ? 0 : motion.smoothPointerX * (narrow ? 0.16 : 0.26);
+    const camTargetY = still ? 0 : -motion.smoothPointerY * (narrow ? 0.12 : 0.2);
+    const camTargetZ = baseCamZ + (still ? 0 : Math.hypot(motion.smoothPointerX, motion.smoothPointerY) * 0.2);
+    easing.damp(cam.position, "x", camTargetX, 0.65, dt);
+    easing.damp(cam.position, "y", camTargetY, 0.65, dt);
+    easing.damp(cam.position, "z", camTargetZ, 0.65, dt);
+
+    // Independent animations across the 3 distinct mesh groups:
+    // (1) Outer Gold Ring: responds to velocity roll and drag momentum
+    if (parts.outerRing) {
+      const ringRoll = -motion.pointerVelX * 0.12;
+      easing.damp(parts.outerRing.rotation, "z", ringRoll, 0.45, dt);
+    }
+
+    // (2) Inner Black Disc: subtle depth breathing and micro counter-parallax
+    if (parts.innerDisc) {
+      const discCounterRoll = motion.smoothPointerX * 0.04;
+      const discDepth = Math.sin(L.time * 2.2) * 0.003;
+      easing.damp(parts.innerDisc.rotation, "z", discCounterRoll, 0.5, dt);
+      easing.damp(parts.innerDisc.position, "z", discDepth, 0.5, dt);
+    }
+
+    // (3) Face Elements (eyes + mouth + tongue): micro-tilt towards cursor for 3D pop, plus click bounce
+    if (parts.faceElements) {
+      const faceTiltX = -motion.smoothPointerY * 0.08;
+      const faceTiltY = motion.smoothPointerX * 0.08;
+      const facePopZ = clickPop * 0.025;
+      easing.damp(parts.faceElements.rotation, "x", faceTiltX, 0.4, dt);
+      easing.damp(parts.faceElements.rotation, "y", faceTiltY, 0.4, dt);
+      easing.damp(parts.faceElements.position, "z", facePopZ, 0.4, dt);
+    }
+
+    // Micro-animations for the bespoke 3D GLB face elements
+    if (parts.glbEyes) {
+      const blinkT = (L.time + 1.3) % 4.2;
+      const blink = blinkT < 0.16 ? 1 - Math.sin((blinkT / 0.16) * Math.PI) * 0.85 : 1;
+      easing.damp(parts.glbEyes.scale, "y", blink, 0.15, dt);
+    }
+    if (parts.glbTongue) {
+      const period = 5.4;
+      const t = L.time % period;
+      const flick = t < 0.35 ? Math.sin((t / 0.35) * Math.PI) : 0;
+      const tongueRotX = flick * 0.28;
+      easing.damp(parts.glbTongue.rotation, "x", tongueRotX, 0.2, dt);
+    }
+
     // Dynamic specular highlight light gliding across the coin surface with smoothed cursor lag.
     if (specLight.current) {
-      specLight.current.position.set(
-        root.position.x + motion.smoothPointerX * 1.75,
-        root.position.y - motion.smoothPointerY * 1.45,
-        root.position.z + 2.35,
-      );
+      const specX = root.position.x + motion.smoothPointerX * 1.85;
+      const specY = root.position.y - motion.smoothPointerY * 1.55;
+      const specZ = root.position.z + 2.45;
+      easing.damp(specLight.current.position, "x", specX, 0.48, dt);
+      easing.damp(specLight.current.position, "y", specY, 0.48, dt);
+      easing.damp(specLight.current.position, "z", specZ, 0.48, dt);
+      const targetIntensity =
+        2.4 + clickPop * 1.6 + Math.min(1.5, Math.hypot(motion.pointerVelX, motion.pointerVelY) * 2.2);
+      easing.damp(specLight.current, "intensity", targetIntensity, 0.35, dt);
+    }
+
+    // Dynamic metallic rim light enhancing edge glints
+    if (rimLight.current) {
+      const rimX = root.position.x - motion.smoothPointerX * 2.2;
+      const rimY = root.position.y + motion.smoothPointerY * 1.8;
+      const rimZ = root.position.z + 1.4;
+      easing.damp(rimLight.current.position, "x", rimX, 0.55, dt);
+      easing.damp(rimLight.current.position, "y", rimY, 0.55, dt);
+      easing.damp(rimLight.current.position, "z", rimZ, 0.55, dt);
+      const rimIntensity = 1.3 + Math.hypot(motion.smoothPointerX, motion.smoothPointerY) * 0.8;
+      easing.damp(rimLight.current, "intensity", rimIntensity, 0.35, dt);
     }
 
     // Update screen-space hit-test bounds for click/drag rotation.
@@ -403,6 +468,14 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
         distance={9}
         decay={1.6}
         position={[0, 0, 2.4]}
+      />
+      <pointLight
+        ref={rimLight}
+        color={palette["--ic-gold-300"]}
+        intensity={1.4}
+        distance={10}
+        decay={1.8}
+        position={[0, 0, 1.4]}
       />
       <group ref={follower}>
         <sprite ref={halo} material={mats.halo} scale={[3.6, 3.6, 1]} position={[0, 0, -0.6]} renderOrder={-1} />
