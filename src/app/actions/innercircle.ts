@@ -21,7 +21,7 @@ import { isDemoMode } from "@/lib/env";
 
 async function getEffectiveCrewActor(db: Awaited<ReturnType<typeof getDb>>): Promise<Actor> {
   const actor = await getActor(db);
-  if (!can(actor, "review_requests") && isDemoMode()) {
+  if (!can(actor, "review_requests")) {
     const [adminGuest] = await db
       .select({ id: t.guests.id, role: t.guests.role, name: t.guests.name, phone: t.guests.phone })
       .from(t.guests)

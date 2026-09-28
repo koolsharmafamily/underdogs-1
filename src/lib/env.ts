@@ -4,12 +4,11 @@
   No secret here ever gets a NEXT_PUBLIC_ prefix.
 */
 
-/** Demo mode: on by default in development, off in production unless DEMO_MODE=true. */
+/** Demo mode: on by default for this demo deployment, off only when DEMO_MODE=false. */
 export function isDemoMode(): boolean {
   const flag = process.env.DEMO_MODE?.trim().toLowerCase();
-  if (flag === "true" || flag === "1") return true;
   if (flag === "false" || flag === "0") return false;
-  return process.env.NODE_ENV !== "production";
+  return true;
 }
 
 export function databaseUrl(): string | undefined {
