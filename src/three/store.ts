@@ -103,6 +103,15 @@ export const motion = {
   /** Pointer position, -1..1, for a gentle parallax on the Full tier. */
   pointerX: 0,
   pointerY: 0,
+  /** Primary weighted lag (-1..1, ~0.42s damping) for 3D gyroscopic look-at tilt. */
+  smoothPointerX: 0,
+  smoothPointerY: 0,
+  /** Secondary deeper lag (-1..1, ~0.75s damping) for magnetic positional drift. */
+  lagPointerX: 0,
+  lagPointerY: 0,
+  /** Instantaneous lag delta for velocity bank/roll and rim glint sweep. */
+  pointerVelX: 0,
+  pointerVelY: 0,
   /** User click / drag rotation offsets and inertia for the 3D coin. */
   userRotY: 0,
   userRotX: 0,
@@ -121,6 +130,14 @@ export function resetMotion(): void {
   motion.entered[0] = true;
   motion.dropArmedAt = 0;
   motion.stampAt = 0;
+  motion.pointerX = 0;
+  motion.pointerY = 0;
+  motion.smoothPointerX = 0;
+  motion.smoothPointerY = 0;
+  motion.lagPointerX = 0;
+  motion.lagPointerY = 0;
+  motion.pointerVelX = 0;
+  motion.pointerVelY = 0;
   motion.userRotY = 0;
   motion.userRotX = 0;
   motion.userVelY = 0;

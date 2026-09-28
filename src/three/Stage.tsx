@@ -104,7 +104,17 @@ export default function Stage() {
       document.body.style.cursor = isInsideCoin(e.clientX, e.clientY) ? "grab" : "";
     };
 
+    const onPointerLeave = () => {
+      motion.pointerX = 0;
+      motion.pointerY = 0;
+      if (!dragging && (document.body.style.cursor === "grab" || document.body.style.cursor === "grabbing")) {
+        document.body.style.cursor = "";
+      }
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("pointerleave", onPointerLeave);
+    window.addEventListener("blur", onPointerLeave);
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerup", onPointerUp, { passive: true });
@@ -113,6 +123,8 @@ export default function Stage() {
     const t = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("blur", onPointerLeave);
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);

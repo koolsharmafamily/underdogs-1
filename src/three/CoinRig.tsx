@@ -14,6 +14,7 @@ import {
   Group,
   MeshStandardMaterial,
   PerspectiveCamera,
+  PointLight,
   Sprite,
   SpriteMaterial,
   type Texture,
@@ -43,10 +44,11 @@ type Props = {
 export function CoinRig({ tier, theme, palette, textures }: Props) {
   const coin = useRef<CoinParts>(null);
   const flute = useRef<FluteRig>(null);
-  const follower = useRef<Group>(null!); // follows the coin's position and scale, not its rotation
+  const follower = useRef<Group>(null!); // follows the coin's position with trailing lag
   const halo = useRef<Sprite>(null!);
   const glints = useRef<Sprite[]>([]);
   const chrome = useRef<Group>(null!);
+  const specLight = useRef<PointLight>(null!);
   const { invalidate } = useThree();
 
   const full = tier === "full";
@@ -187,38 +189,84 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     const k = (L.time - L.stampStart) / 0.45;
     const stamp = k >= 0 && k < 1 ? Math.sin(k * Math.PI) : 0;
 
-    const px = full ? motion.pointerX : 0;
-    const py = full ? motion.pointerY : 0;
+    // 5. Dual-horizon exponential cursor lag (0.42s primary tilt lag, 0.75s secondary drift lag).
+    if (still) {
+      motion.smoothPointerX = 0;
+      motion.smoothPointerY = 0;
+      motion.lagPointerX = 0;
+      motion.lagPointerY = 0;
+      motion.pointerVelX = 0;
+      motion.pointerVelY = 0;
+    } else {
+      easing.damp(motion, "smoothPointerX", motion.pointerX, 0.42, dt);
+      easing.damp(motion, "smoothPointerY", motion.pointerY, 0.42, dt);
+      easing.damp(motion, "lagPointerX", motion.smoothPointerX, 0.75, dt);
+      easing.damp(motion, "lagPointerY", motion.smoothPointerY, 0.75, dt);
+      motion.pointerVelX = motion.pointerX - motion.smoothPointerX;
+      motion.pointerVelY = motion.pointerY - motion.smoothPointerY;
+    }
+
+    // Continuous organic Lissajous micro-float so the coin breathes even when cursor rests.
+    const floatX = still ? 0 : Math.cos(L.time * 0.7) * 0.015;
+    const floatY = still ? 0 : Math.sin(L.time * 1.1) * 0.022;
+    const floatRx = still ? 0 : Math.sin(L.time * 0.9) * 0.025;
+
     const root = parts.root;
-    const tx = target.x * halfW;
-    const ty = target.y * halfH;
+    const tx = target.x * halfW + (still ? 0 : motion.lagPointerX * halfW * 0.085 + floatX);
+    const ty = target.y * halfH + (still ? 0 : -motion.lagPointerY * halfH * 0.085 + floatY);
+    const tz =
+      target.z +
+      (still ? 0 : (1 - Math.min(1, Math.hypot(motion.smoothPointerX, motion.smoothPointerY) * 0.5)) * 0.12);
     const ts = target.s * unit * (1 - stamp * 0.16 + clickPop * 0.06);
-    const trx = target.rx + motion.userRotX + py * 0.08 + wobble * 0.05;
-    const trz = target.rz + wobble * 0.12 + stamp * 0.1;
-    const tRy = ry + motion.userRotY + px * 0.12;
+
+    // 3D Gyroscopic Look-At Tilt & Velocity Roll/Bank
+    const trx = target.rx + (still ? 0 : -motion.smoothPointerY * 0.34 + floatRx) + motion.userRotX + wobble * 0.05;
+    const tRy = ry + (still ? 0 : motion.smoothPointerX * 0.46) + motion.userRotY;
+    const trz =
+      target.rz +
+      (still ? 0 : -motion.pointerVelX * 0.18 - motion.smoothPointerX * 0.06) +
+      wobble * 0.12 +
+      stamp * 0.1;
 
     if (still || L.first) {
-      root.position.set(tx, ty, target.z);
+      root.position.set(tx, ty, tz);
       root.rotation.set(trx, tRy, trz);
       root.scale.setScalar(ts);
+      follower.current.position.set(tx, ty, tz);
+      follower.current.scale.setScalar(ts);
       L.flute = target.flute;
       L.notches = target.notches;
       L.awake = target.awake;
       L.first = false;
     } else {
-      const rotDamp = motion.isDraggingCoin ? 0.05 : 0.16;
-      easing.damp(root.position, "x", tx, 0.35, dt);
-      easing.damp(root.position, "y", ty, 0.35, dt);
-      easing.damp(root.position, "z", target.z, 0.35, dt);
+      const rotDamp = motion.isDraggingCoin ? 0.06 : 0.38;
+      easing.damp(root.position, "x", tx, 0.55, dt);
+      easing.damp(root.position, "y", ty, 0.55, dt);
+      easing.damp(root.position, "z", tz, 0.55, dt);
       easing.damp(root.rotation, "x", trx, rotDamp, dt);
       easing.damp(root.rotation, "y", tRy, rotDamp, dt);
-      easing.damp(root.rotation, "z", trz, 0.3, dt);
-      easing.damp(root.scale, "x", ts, 0.25, dt);
+      easing.damp(root.rotation, "z", trz, 0.42, dt);
+      easing.damp(root.scale, "x", ts, 0.28, dt);
       root.scale.y = root.scale.x;
       root.scale.z = root.scale.x;
       easing.damp(L, "flute", target.flute, 0.4, dt);
       easing.damp(L, "notches", target.notches, 0.15, dt);
       easing.damp(L, "awake", target.awake, 0.4, dt);
+
+      // Trailing parallax lag on the back-glow halo & follower group.
+      easing.damp(follower.current.position, "x", root.position.x - motion.lagPointerX * 0.08, 0.65, dt);
+      easing.damp(follower.current.position, "y", root.position.y + motion.lagPointerY * 0.08, 0.65, dt);
+      easing.damp(follower.current.position, "z", root.position.z, 0.65, dt);
+      follower.current.scale.copy(root.scale);
+    }
+
+    // Dynamic specular highlight light gliding across the coin surface with smoothed cursor lag.
+    if (specLight.current) {
+      specLight.current.position.set(
+        root.position.x + motion.smoothPointerX * 1.75,
+        root.position.y - motion.smoothPointerY * 1.45,
+        root.position.z + 2.35,
+      );
     }
 
     // Update screen-space hit-test bounds for click/drag rotation.
@@ -226,9 +274,6 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     motion.coinScreenY = (0.5 - root.position.y / Math.max(0.001, 2 * halfH)) * state.size.height;
     motion.coinScreenR = (root.scale.x / Math.max(0.001, 2 * halfH)) * state.size.height;
 
-    // Followers: halo, chrome rings, flute.
-    follower.current.position.copy(root.position);
-    follower.current.scale.copy(root.scale);
     if (full) {
       halo.current.visible = true;
       mats.halo.opacity = 0.2 + stamp * 0.1 + clickPop * 0.18 + (sinceImpact < 1 ? (1 - sinceImpact) * 0.25 : 0);
@@ -327,16 +372,18 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       }
     }
 
-    // Glints sweep the rim in turn (Full only) and flash when clicked.
+    // Glints sweep the rim in turn, react to cursor velocity, and flash when clicked.
+    const cursorSweep = Math.min(0.85, Math.hypot(motion.pointerVelX, motion.pointerVelY) * 1.35);
     for (let j = 0; j < glints.current.length; j++) {
       const g = glints.current[j];
       if (!g) continue;
-      if (!full && clickPop <= 0.01) {
+      if (!full && clickPop <= 0.01 && cursorSweep <= 0.05) {
         g.visible = false;
         continue;
       }
-      const cycle = (L.time + j * 1.1) % 3.3;
-      const a = Math.max(clickPop, cycle < 0.7 ? Math.sin((cycle / 0.7) * Math.PI) : 0);
+      const cycle = (L.time + j * 1.1 + motion.smoothPointerX * 0.8) % 3.3;
+      const baseGlint = cycle < 0.7 ? Math.sin((cycle / 0.7) * Math.PI) : 0;
+      const a = Math.max(clickPop, baseGlint, j === 0 ? cursorSweep : cursorSweep * 0.55);
       g.visible = a > 0.01;
       g.scale.setScalar(0.08 + a * 0.3);
       g.material.opacity = a;
@@ -349,6 +396,14 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
 
   return (
     <group>
+      <pointLight
+        ref={specLight}
+        color={palette["--ic-gold-100"]}
+        intensity={2.6}
+        distance={9}
+        decay={1.6}
+        position={[0, 0, 2.4]}
+      />
       <group ref={follower}>
         <sprite ref={halo} material={mats.halo} scale={[3.6, 3.6, 1]} position={[0, 0, -0.6]} renderOrder={-1} />
         <group ref={chrome} visible={false}>
