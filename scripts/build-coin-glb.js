@@ -1,9 +1,161 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { NodeIO } = require('@gltf-transform/core');
 const { MeshoptSimplifier } = require('meshoptimizer');
 const { KHRONOS_EXTENSIONS } = require('@gltf-transform/extensions');
+
+function makePng(width, height, rgbaBuffer) {
+  const crcTable = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      if (c & 1) c = 0xedb88320 ^ (c >>> 1);
+      else c = c >>> 1;
+    }
+    crcTable[n] = c;
+  }
+  function crc32(buf) {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) {
+      c = crcTable[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  }
+  function chunk(type, data) {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length, 0);
+    const typeBuf = Buffer.from(type, 'ascii');
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
+    return Buffer.concat([len, typeBuf, data, crc]);
+  }
+
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+
+  const scanlines = Buffer.alloc(height * (1 + width * 4));
+  let srcOffset = 0;
+  let dstOffset = 0;
+  const rowLen = width * 4;
+  for (let y = 0; y < height; y++) {
+    scanlines[dstOffset++] = 0;
+    rgbaBuffer.copy(scanlines, dstOffset, srcOffset, srcOffset + rowLen);
+    dstOffset += rowLen;
+    srcOffset += rowLen;
+  }
+
+  const idat = zlib.deflateSync(scanlines, { level: 4 });
+  return Buffer.concat([
+    sig,
+    chunk('IHDR', ihdr),
+    chunk('IDAT', idat),
+    chunk('IEND', Buffer.alloc(0))
+  ]);
+}
+
+function generateTextures(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const S = 2048;
+  console.log('Generating 2K PBR textures calibrated to Underdogs brand gold...');
+  const baseColorBuf = Buffer.alloc(S * S * 4);
+  const metalnessBuf = Buffer.alloc(S * S * 4);
+  const roughnessBuf = Buffer.alloc(S * S * 4);
+  const normalBuf = Buffer.alloc(S * S * 4);
+  const pbrPackedBuf = Buffer.alloc(S * S * 4);
+
+  for (let y = 0; y < S; y++) {
+    const ny = (y / S) * 2 - 1;
+    for (let x = 0; x < S; x++) {
+      const nx = (x / S) * 2 - 1;
+      const r = Math.hypot(nx, ny);
+      const angle = Math.atan2(ny, nx);
+      const idx = (y * S + x) * 4;
+
+      const lathe = Math.sin(r * 320) * 0.5 + Math.sin(r * 680) * 0.25;
+      const radial = Math.sin(angle * 128 + r * 40) * 0.2;
+
+      const isInnerDisc = r < 0.56;
+
+      if (isInnerDisc) {
+        // Deep Onyx Black Enamel (#050505) matching --ic-void
+        const darkNoise = Math.floor(5 + Math.random() * 2);
+        baseColorBuf[idx] = darkNoise;
+        baseColorBuf[idx + 1] = darkNoise;
+        baseColorBuf[idx + 2] = darkNoise;
+        baseColorBuf[idx + 3] = 255;
+
+        metalnessBuf[idx] = 0;
+        metalnessBuf[idx + 1] = 0;
+        metalnessBuf[idx + 2] = 0;
+        metalnessBuf[idx + 3] = 255;
+
+        roughnessBuf[idx] = 20; // ~0.08 glossy piano black
+        roughnessBuf[idx + 1] = 20;
+        roughnessBuf[idx + 2] = 20;
+        roughnessBuf[idx + 3] = 255;
+
+        normalBuf[idx] = 128;
+        normalBuf[idx + 1] = 128;
+        normalBuf[idx + 2] = 255;
+        normalBuf[idx + 3] = 255;
+
+        pbrPackedBuf[idx] = 255; // Occlusion
+        pbrPackedBuf[idx + 1] = 20; // Roughness
+        pbrPackedBuf[idx + 2] = 0; // Metalness
+        pbrPackedBuf[idx + 3] = 255;
+      } else {
+        // Lustrous Brand Gold (#f2d68f to #f3e0ac) matching font gold and Logo.jpg
+        const grain = 1.0 + (lathe * 0.025 + radial * 0.015);
+        const baseR = Math.min(255, Math.floor(242 * grain));
+        const baseG = Math.min(255, Math.floor(214 * grain));
+        const baseB = Math.min(255, Math.floor(143 * grain));
+
+        baseColorBuf[idx] = baseR;
+        baseColorBuf[idx + 1] = baseG;
+        baseColorBuf[idx + 2] = baseB;
+        baseColorBuf[idx + 3] = 255;
+
+        metalnessBuf[idx] = 255;
+        metalnessBuf[idx + 1] = 255;
+        metalnessBuf[idx + 2] = 255;
+        metalnessBuf[idx + 3] = 255;
+
+        const roughVal = Math.min(255, Math.max(0, Math.floor(54 + lathe * 12))); // ~0.21 smooth satin metal
+        roughnessBuf[idx] = roughVal;
+        roughnessBuf[idx + 1] = roughVal;
+        roughnessBuf[idx + 2] = roughVal;
+        roughnessBuf[idx + 3] = 255;
+
+        const dL = Math.cos(r * 320) * 0.06;
+        const nxVal = Math.floor(128 + (-Math.sin(angle) * dL) * 127);
+        const nyVal = Math.floor(128 + (Math.cos(angle) * dL) * 127);
+        normalBuf[idx] = Math.min(255, Math.max(0, nxVal));
+        normalBuf[idx + 1] = Math.min(255, Math.max(0, nyVal));
+        normalBuf[idx + 2] = 248;
+        normalBuf[idx + 3] = 255;
+
+        pbrPackedBuf[idx] = 255; // Occlusion
+        pbrPackedBuf[idx + 1] = roughVal; // Roughness
+        pbrPackedBuf[idx + 2] = 255; // Metalness
+        pbrPackedBuf[idx + 3] = 255;
+      }
+    }
+  }
+
+  fs.writeFileSync(path.join(dir, 'coin_base_color_2k.png'), makePng(S, S, baseColorBuf));
+  fs.writeFileSync(path.join(dir, 'coin_metalness_2k.png'), makePng(S, S, metalnessBuf));
+  fs.writeFileSync(path.join(dir, 'coin_roughness_2k.png'), makePng(S, S, roughnessBuf));
+  fs.writeFileSync(path.join(dir, 'coin_normal_2k.png'), makePng(S, S, normalBuf));
+  fs.writeFileSync(path.join(dir, 'coin_metallic_roughness_2k.png'), makePng(S, S, pbrPackedBuf));
+  console.log('2K PBR textures generated successfully.');
+}
 
 async function buildCoinGlb() {
   await MeshoptSimplifier.ready;
@@ -11,6 +163,9 @@ async function buildCoinGlb() {
   const srcPath = path.resolve(__dirname, '../COIN 3D.glb');
   const dstPath = path.resolve(__dirname, '../public/models/coin-3d.glb');
   const texturesDir = path.resolve(__dirname, '../public/models/textures');
+
+  // Generate textures first
+  generateTextures(texturesDir);
 
   console.log('Loading source:', srcPath);
   const doc = await io.read(srcPath);
@@ -48,7 +203,6 @@ async function buildCoinGlb() {
   // 2. Ensure origin / pivot is at the exact center (0, 0, 0)
   const coinRoot = root.listNodes().find(n => n.getName() === 'underdogs_coin');
   if (coinRoot) {
-    // Reset any offset translation to ensure exact center pivot at (0, 0, 0)
     coinRoot.setTranslation([0, 0, 0]);
     coinRoot.setRotation([0, 0, 0, 1]);
     coinRoot.setScale([1, 1, 1]);

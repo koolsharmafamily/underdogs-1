@@ -471,8 +471,8 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       />
       <pointLight
         ref={rimLight}
-        color={palette["--ic-gold-300"]}
-        intensity={1.4}
+        color={palette["--ic-gold-bright"]}
+        intensity={1.8}
         distance={10}
         decay={1.8}
         position={[0, 0, 1.4]}

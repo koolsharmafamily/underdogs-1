@@ -296,13 +296,13 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
 
           if (origMat.name === "gold_polished" || obj.name.includes("eyes") || obj.name.includes("mouth") || obj.name.includes("tongue")) {
             m.color.copy(palette["--ic-gold-100"]);
-            m.metalness = 0.82;
-            m.roughness = 0.14;
+            m.metalness = 0.85;
+            m.roughness = 0.12;
             m.normalMap = normalMap;
-            m.normalScale.set(0.2, 0.2);
+            m.normalScale.set(0.18, 0.18);
             m.emissive.copy(palette["--ic-gold-300"]);
-            m.emissiveIntensity = 0.24;
-            m.envMapIntensity = 1.45;
+            m.emissiveIntensity = 0.35;
+            m.envMapIntensity = 1.6;
           } else if (origMat.name === "gold_lettering") {
             m.map = baseColorMap;
             m.roughnessMap = pbrMap;
@@ -310,11 +310,11 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
             m.normalMap = normalMap;
             m.normalScale.set(0.3, 0.3);
             m.color.copy(palette["--ic-gold-100"]);
-            m.metalness = 0.8;
-            m.roughness = 0.3;
+            m.metalness = 0.82;
+            m.roughness = 0.22;
             m.emissive.copy(palette["--ic-gold-300"]);
-            m.emissiveIntensity = 0.26;
-            m.envMapIntensity = 1.3;
+            m.emissiveIntensity = 0.32;
+            m.envMapIntensity = 1.5;
           } else {
             // outer_gold_ring core, rim lip, and rim beads
             m.map = baseColorMap;
@@ -322,12 +322,12 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
             m.metalnessMap = pbrMap;
             m.normalMap = normalMap;
             m.normalScale.set(0.35, 0.35);
-            m.color.copy(palette["--ic-gold-300"]);
-            m.metalness = 0.86;
-            m.roughness = 0.26;
-            m.emissive.copy(palette["--ic-gold-500"]);
-            m.emissiveIntensity = 0.18;
-            m.envMapIntensity = 1.35;
+            m.color.copy(palette["--ic-gold-bright"]);
+            m.metalness = 0.84;
+            m.roughness = 0.22;
+            m.emissive.copy(palette["--ic-gold-300"]);
+            m.emissiveIntensity = 0.28;
+            m.envMapIntensity = 1.5;
           }
           m.needsUpdate = true;
           obj.material = m;
