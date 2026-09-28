@@ -25,18 +25,11 @@ export function CanvasHost() {
     const onChange = () => setDetected(chooseTier(readSignals()));
     mq.addEventListener("change", onChange);
 
-    // Wait for first paint and a quiet moment before fetching the 3D chunk.
-    let idle = 0;
-    const arm = () => {
-      const ric = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 200));
-      idle = ric(() => setArmed(true), { timeout: 1500 }) as number;
-    };
-    if (document.readyState === "complete") arm();
-    else window.addEventListener("load", arm, { once: true });
+    // Arm the 3D stage promptly after first paint so the scene hydrates without artificial delay.
+    const armTimer = window.setTimeout(() => setArmed(true), 80);
     return () => {
       mq.removeEventListener("change", onChange);
-      window.removeEventListener("load", arm);
-      window.cancelIdleCallback?.(idle);
+      window.clearTimeout(armTimer);
     };
   }, []);
 

@@ -3,14 +3,11 @@ import { cookies } from "next/headers";
 import { DemoPanel } from "@/components/demo/DemoPanel";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { getActor } from "@/lib/auth/request";
 import { THEME_COOKIE } from "@/lib/cookies";
-import { getDb } from "@/lib/db";
-import { resolveSiteTheme } from "@/lib/domain/innercircle";
 import { appUrl, isDemoMode } from "@/lib/env";
 import { SITE_LINE, SITE_NAME } from "@/lib/site";
 import { CanvasHost } from "@/three/CanvasHost";
-import { isThemeId, themeCss, themeFor } from "@/themes";
+import { isThemeId, themeCss } from "@/themes";
 import { fontVariables } from "./fonts";
 import "./globals.css";
 
@@ -33,11 +30,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Cookies first: it marks every page dynamic before anything opens the database.
+  // Read theme override cookie if present; avoid blocking root layout HTML streaming on cold database migrations.
   const cookieOverride = (await cookies()).get(THEME_COOKIE)?.value ?? null;
   const override = isDemoMode() && isThemeId(cookieOverride) ? cookieOverride : null;
-  const db = await getDb();
-  const theme = themeFor(await resolveSiteTheme(db, await getActor(db), { override })).id;
+  const theme = override ?? "vault";
 
   return (
     <html lang="en-IN" data-theme={theme} className={fontVariables}>

@@ -60,7 +60,10 @@
     }
   }
   body {
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: radial-gradient(ellipse 80% 50% at 50% 12%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--text);
     font-family: var(--ff-ui);
     -webkit-font-smoothing: antialiased;
@@ -237,6 +240,14 @@
   @keyframes sweep {
     0% { background-position: 130% 0; }
     45%, 100% { background-position: -30% 0; }
+  }
+
+  .loading-shimmer-bar {
+    animation: shimmer-slide 1.8s ease-in-out infinite;
+  }
+  @keyframes shimmer-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
   }
 
   /* Wax seal on each past night. */
