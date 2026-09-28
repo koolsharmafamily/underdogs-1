@@ -58,6 +58,10 @@ function loadCoinGlb(): Promise<GLTF> {
   return cachedGlbPromise;
 }
 
+if (typeof window !== "undefined") {
+  loadCoinGlb();
+}
+
 /** Height of the dome's surface above (x, y), in coin space. */
 function domeZ(x: number, y: number) {
   return DOME_CENTRE_Z + Math.sqrt(Math.max(0, DOME_R * DOME_R - x * x - y * y));

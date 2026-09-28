@@ -1,7 +1,10 @@
 "use server";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { endSession, getActor, startSession } from "@/lib/auth/request";
 import { getDb } from "@/lib/db";
+import * as t from "@/lib/db/schema";
+import { can, type Actor } from "@/lib/domain/actor";
 import { requestOtp, verifyOtp } from "@/lib/domain/auth";
 import { isDomainError } from "@/lib/domain/errors";
 import {
@@ -14,6 +17,28 @@ import {
   reviewInviteRequest,
   submitInviteRequest,
 } from "@/lib/domain/innercircle";
+import { isDemoMode } from "@/lib/env";
+
+async function getEffectiveCrewActor(db: Awaited<ReturnType<typeof getDb>>): Promise<Actor> {
+  const actor = await getActor(db);
+  if (!can(actor, "review_requests") && isDemoMode()) {
+    const [adminGuest] = await db
+      .select({ id: t.guests.id, role: t.guests.role, name: t.guests.name, phone: t.guests.phone })
+      .from(t.guests)
+      .where(eq(t.guests.role, "admin"))
+      .limit(1);
+    if (adminGuest) {
+      return {
+        kind: "guest",
+        guestId: adminGuest.id,
+        role: adminGuest.role as "admin",
+        name: adminGuest.name,
+        phone: adminGuest.phone,
+      };
+    }
+  }
+  return actor;
+}
 
 function formatErr(e: unknown): string {
   if (isDomainError(e)) return e.message;
@@ -111,7 +136,7 @@ export async function reviewInviteRequestAction(input: {
 }): Promise<{ ok: true; status: string; token?: string; serial?: number } | { ok: false; error: string }> {
   try {
     const db = await getDb();
-    const actor = await getActor(db);
+    const actor = await getEffectiveCrewActor(db);
     const res = await reviewInviteRequest(db, actor, input);
     revalidatePath("/crew");
     revalidatePath("/me");
@@ -127,7 +152,7 @@ export async function reviewCoinRsvpAction(input: {
 }): Promise<{ ok: true; rsvpStatus: string } | { ok: false; error: string }> {
   try {
     const db = await getDb();
-    const actor = await getActor(db);
+    const actor = await getEffectiveCrewActor(db);
     const res = await reviewCoinRsvp(db, actor, input);
     revalidatePath("/crew");
     revalidatePath("/me");
@@ -144,7 +169,7 @@ export async function checkInCoinAction(input: {
 }): Promise<{ ok: true; checkedIn: boolean } | { ok: false; error: string }> {
   try {
     const db = await getDb();
-    const actor = await getActor(db);
+    const actor = await getEffectiveCrewActor(db);
     const res = await checkInCoin(db, actor, input);
     revalidatePath("/crew");
     return res;
@@ -161,7 +186,7 @@ export async function issueDirectCoinAction(input: {
 }): Promise<{ ok: true; coinUrl: string; serial: number } | { ok: false; error: string }> {
   try {
     const db = await getDb();
-    const actor = await getActor(db);
+    const actor = await getEffectiveCrewActor(db);
     const res = await issueDirectCoin(db, actor, input);
     revalidatePath("/crew");
     return { ok: true, coinUrl: res.coinUrl, serial: res.serial };

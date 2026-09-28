@@ -38,6 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-IN" data-theme={theme} className={fontVariables}>
       <head>
+        <link rel="preload" href="/models/coin-3d.glb" as="fetch" crossOrigin="anonymous" />
         <style id="theme-packs" dangerouslySetInnerHTML={{ __html: themeCss() }} />
       </head>
       <body className="flex min-h-dvh flex-col">

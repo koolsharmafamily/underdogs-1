@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { eq } from "drizzle-orm";
 import { getActor } from "@/lib/auth/request";
 import { now } from "@/lib/clock";
 import { getDb } from "@/lib/db";
-import { can } from "@/lib/domain/actor";
+import * as t from "@/lib/db/schema";
+import { can, type Actor } from "@/lib/domain/actor";
 import { getCrewDashboard } from "@/lib/domain/innercircle";
 import { isDemoMode } from "@/lib/env";
 import { CrewClient } from "./CrewClient";
@@ -14,7 +16,26 @@ export const metadata: Metadata = {
 
 export default async function CrewPage() {
   const db = await getDb();
-  const actor = await getActor(db);
+  let actor: Actor = await getActor(db);
+
+  // In demo mode, automatically permit access as Demo Admin so the console is immediately visible and interactive
+  if (!can(actor, "review_requests") && isDemoMode()) {
+    const [adminGuest] = await db
+      .select({ id: t.guests.id, role: t.guests.role, name: t.guests.name, phone: t.guests.phone })
+      .from(t.guests)
+      .where(eq(t.guests.role, "admin"))
+      .limit(1);
+
+    if (adminGuest) {
+      actor = {
+        kind: "guest",
+        guestId: adminGuest.id,
+        role: adminGuest.role as "admin",
+        name: adminGuest.name,
+        phone: adminGuest.phone,
+      };
+    }
+  }
 
   if (!can(actor, "review_requests")) {
     return (

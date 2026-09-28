@@ -213,7 +213,8 @@
     top: 27dvh;
     width: calc(0.86 * min(80vw, 50dvh) / 0.764);
     transform: translate(-49.8%, -50.6%);
-    transition: opacity 700ms ease;
+    transition: opacity 1000ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity;
   }
   @media (min-width: 640px) and (min-aspect-ratio: 9/10) {
     .coin-fallback {

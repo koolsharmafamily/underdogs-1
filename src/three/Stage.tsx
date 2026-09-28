@@ -15,6 +15,7 @@ export default function Stage() {
   const tier = useStage((s) => s.tier);
   const theme = useStage((s) => s.theme);
   const slots = useStage((s) => s.slots);
+  const ready = useStage((s) => s.ready);
   const degrade = useStage((s) => s.degrade);
   const [hidden, setHidden] = useState(false);
 
@@ -141,7 +142,12 @@ export default function Stage() {
   const frameloop = hidden || !anySlot ? "never" : tier === "still" ? "demand" : "always";
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
+    <div
+      aria-hidden
+      className={`pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 ease-out will-change-[opacity] ${
+        ready ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <Canvas
         dpr={tier === "full" ? [1, 1.75] : [1, 1.5]}
         frameloop={frameloop}

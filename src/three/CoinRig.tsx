@@ -128,13 +128,15 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
   useFrame((state, rawDelta) => {
     const parts = coin.current;
     if (!parts) return;
-    if (!live.current.readySent && textures.heads && ++live.current.frames > 2) {
-      live.current.readySent = true;
-      useStage.getState().setReady(true);
-    }
     const dt = Math.min(rawDelta, 1 / 20);
     const L = live.current;
     L.time += dt;
+
+    const canReveal = parts.glbLoaded || (textures.heads && L.time > 1.8);
+    if (!L.readySent && canReveal && ++L.frames > 3) {
+      L.readySent = true;
+      useStage.getState().setReady(true);
+    }
 
     // View size in world units at the coin's depth (z = 0).
     const cam = state.camera as PerspectiveCamera;
