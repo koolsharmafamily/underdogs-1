@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { requestOtp, verifyOtp } from "@/lib/domain/auth";
 import { isDomainError } from "@/lib/domain/errors";
 import {
+  checkInCoin,
   claimCoinAndSubmitRsvp,
   deleteMyData,
   issueDirectCoin,
@@ -132,6 +133,21 @@ export async function reviewCoinRsvpAction(input: {
     revalidatePath("/me");
     revalidatePath("/innercircle/the-gold-room");
     return { ok: true, ...res };
+  } catch (e) {
+    return { ok: false, error: formatErr(e) };
+  }
+}
+
+export async function checkInCoinAction(input: {
+  coinId: string;
+  checkedIn?: boolean;
+}): Promise<{ ok: true; checkedIn: boolean } | { ok: false; error: string }> {
+  try {
+    const db = await getDb();
+    const actor = await getActor(db);
+    const res = await checkInCoin(db, actor, input);
+    revalidatePath("/crew");
+    return res;
   } catch (e) {
     return { ok: false, error: formatErr(e) };
   }

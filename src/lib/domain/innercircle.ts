@@ -1141,10 +1141,41 @@ export async function deleteMyData(db: Db, actor: Actor): Promise<void> {
   });
 }
 
-// ── 9. FAQ & Crew Dashboard Queries ──────────────────────────────────────
+// ── 9. FAQ, Check-in & Crew Dashboard Queries ────────────────────────────
 
 export async function listFaqs(db: Db, _actor: Actor) {
   return db.select().from(t.faqs).orderBy(asc(t.faqs.sort));
+}
+
+export async function checkInCoin(
+  db: Db,
+  actor: Actor,
+  input: { coinId: string; checkedIn?: boolean },
+): Promise<{ ok: true; checkedIn: boolean }> {
+  assertCan(actor, "review_requests");
+  const at = await now(db);
+  const [coin] = await db.select().from(t.coins).where(eq(t.coins.id, input.coinId));
+  if (!coin) throw new DomainError("not_found", "Coin not found.");
+
+  const isCheckedIn = input.checkedIn ?? true;
+  const currentDetails: t.CoinClaimDetails = coin.claimDetails ?? {
+    name: coin.engraving,
+    phone: coin.intendedPhone ?? "",
+    submittedAt: at.toISOString(),
+  };
+
+  const updatedDetails: t.CoinClaimDetails = {
+    ...currentDetails,
+    checkedIn: isCheckedIn,
+    checkedInAt: isCheckedIn ? at.toISOString() : undefined,
+  };
+
+  await db
+    .update(t.coins)
+    .set({ claimDetails: updatedDetails })
+    .where(eq(t.coins.id, input.coinId));
+
+  return { ok: true, checkedIn: isCheckedIn };
 }
 
 export async function getCrewDashboard(db: Db, actor: Actor) {
@@ -1185,7 +1216,32 @@ export async function getCrewDashboard(db: Db, actor: Actor) {
       .innerJoin(t.guests, eq(t.waitlistEntries.guestId, t.guests.id))
       .orderBy(asc(t.waitlistEntries.createdAt)),
     db.select().from(t.messagesOut).orderBy(desc(t.messagesOut.createdAt)).limit(40),
-    db.select().from(t.events).orderBy(desc(t.events.startsAt)),
+    db
+      .select({
+        id: t.events.id,
+        slug: t.events.slug,
+        kind: t.events.kind,
+        status: t.events.status,
+        title: t.events.title,
+        tagline: t.events.tagline,
+        theme: t.events.theme,
+        soundTags: t.events.soundTags,
+        dressCode: t.events.dressCode,
+        capacity: t.events.capacity,
+        confirmedCount: t.events.confirmedCount,
+        startsAt: t.events.startsAt,
+        endsAt: t.events.endsAt,
+        timezone: t.events.timezone,
+        dropAt: t.events.dropAt,
+        dropFiredAt: t.events.dropFiredAt,
+        venueName: t.venues.name,
+        venueArea: t.venues.area,
+        venueAddress: t.venues.address,
+        venueMapsUrl: t.venues.mapsUrl,
+      })
+      .from(t.events)
+      .leftJoin(t.venues, eq(t.events.venueId, t.venues.id))
+      .orderBy(desc(t.events.startsAt)),
     db.select().from(t.faqs).orderBy(asc(t.faqs.sort)),
   ]);
 

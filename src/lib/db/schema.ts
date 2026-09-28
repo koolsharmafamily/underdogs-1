@@ -149,6 +149,8 @@ export type CoinClaimDetails = {
   companionDetails?: string;
   note?: string;
   submittedAt: string;
+  checkedIn?: boolean;
+  checkedInAt?: string;
 };
 
 export const inviteRequests = pgTable(
