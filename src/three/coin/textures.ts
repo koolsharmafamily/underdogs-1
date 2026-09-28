@@ -117,11 +117,12 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
   const raised = mode === "height" ? level(1) : col("--ic-gold-100");
   const low = mode === "height" ? level(0.2) : col("--ic-gold-900");
 
-  // Outer brushed gold ring with deep onyx inner field, matching the Heads side contrast.
+  // Outer brushed gold ring with deep onyx inner field, matching the Heads side contrast and font champagne-gold (--ic-gold-metal).
   if (mode === "color") {
-    const g = ctx.createRadialGradient(c * 0.7, c * 0.6, size * 0.05, c, c, c);
+    const g = ctx.createRadialGradient(c * 0.68, c * 0.55, size * 0.05, c, c, c);
     g.addColorStop(0, col("--ic-gold-100"));
-    g.addColorStop(0.5, col("--ic-gold-300"));
+    g.addColorStop(0.48, col("--ic-gold-300"));
+    g.addColorStop(0.82, col("--ic-gold-500"));
     g.addColorStop(1, col("--ic-gold-700"));
     ctx.fillStyle = g;
   } else {

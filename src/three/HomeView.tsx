@@ -80,13 +80,13 @@ export default function HomeView({ tier, theme }: { tier: Tier; theme: string })
           </>
         ) : (
           <>
-            <Lightformer form="rect" intensity={4.5} color={palette["--ic-gold-100"]} position={[-4, 4, 3]} scale={[6, 3, 1]} />
-            <Lightformer form="rect" intensity={1.1} color={palette["--ic-ivory"]} position={[4, 0, 2]} scale={[3, 6, 1]} />
-            <Lightformer form="rect" intensity={2.4} color={palette["--ic-ember"]} position={[0, -3, -4]} scale={[9, 1.2, 1]} />
+            <Lightformer form="rect" intensity={3.8} color={palette["--ic-ivory"]} position={[-4, 4, 3]} scale={[6, 3, 1]} />
+            <Lightformer form="rect" intensity={1.4} color={palette["--ic-gold-100"]} position={[4, 0, 2]} scale={[3, 6, 1]} />
+            <Lightformer form="rect" intensity={1.8} color={palette["--ic-gold-300"]} position={[0, -3, -4]} scale={[9, 1.2, 1]} />
             <Lightformer form="rect" intensity={1.6} color={palette["--ic-ivory"]} position={[0, 5, -2]} scale={[10, 0.6, 1]} />
-            <Lightformer form="ring" intensity={1.4} color={palette["--ic-champagne"]} position={[2, 3, 5]} scale={[2, 2, 1]} />
-            {/* A big soft box behind the camera: what a face-on coin mirrors. */}
-            <Lightformer form="rect" intensity={0.85} color={palette["--ic-champagne"]} position={[0, 0, 9]} scale={[14, 9, 1]} />
+            <Lightformer form="ring" intensity={1.5} color={palette["--ic-gold-100"]} position={[2, 3, 5]} scale={[2, 2, 1]} />
+            {/* A big soft box behind the camera: keeps the face-on coin's champagne gold true to Logo.jpg. */}
+            <Lightformer form="rect" intensity={1.1} color={palette["--ic-ivory"]} position={[0, 0, 9]} scale={[14, 9, 1]} />
           </>
         )}
       </Environment>

@@ -133,31 +133,62 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
   }, [seg, detail]);
 
   const mat = useMemo(() => {
+    const neutralWhite = palette["--ic-ivory"].clone().setRGB(1, 1, 1);
     const gold = (p: Partial<ConstructorParameters<typeof MeshPhysicalMaterial>[0]> = {}) =>
-      new MeshPhysicalMaterial({ color: palette["--ic-gold-300"], metalness: 1, roughness: 0.3, ...p });
+      new MeshPhysicalMaterial({ color: palette["--ic-gold-100"], metalness: 0.78, roughness: 0.24, ...p });
     return {
-      edge: gold({ color: palette["--ic-gold-500"], roughness: 0.3, bumpMap: edgeBump, bumpScale: 2.5 }),
-      bead: gold({ color: palette["--ic-gold-100"], roughness: 0.18, envMapIntensity: 1.4 }),
-      heads: gold({
-        color: palette["--ic-ivory"],
-        metalness: 0.92,
-        roughness: 0.22,
-        anisotropy: 0.35,
-        emissive: palette["--ic-ivory"],
-        emissiveIntensity: 0.15,
-        envMapIntensity: 1.35,
+      edge: gold({
+        color: palette["--ic-gold-100"],
+        metalness: 0.75,
+        roughness: 0.25,
+        emissive: palette["--ic-gold-300"],
+        emissiveIntensity: 0.26,
+        bumpMap: edgeBump,
+        bumpScale: 2.2,
       }),
-      tails: gold({
-        color: palette["--ic-ivory"],
-        metalness: 0.92,
-        roughness: 0.22,
-        anisotropy: 0.35,
-        emissive: palette["--ic-ivory"],
-        emissiveIntensity: 0.15,
-        envMapIntensity: 1.35,
+      bead: gold({
+        color: palette["--ic-gold-100"],
+        metalness: 0.72,
+        roughness: 0.18,
+        emissive: palette["--ic-gold-300"],
+        emissiveIntensity: 0.24,
+        envMapIntensity: 1.3,
       }),
-      facet: gold({ color: palette["--ic-gold-100"], roughness: 0.16, flatShading: true }),
-      polished: gold({ color: palette["--ic-gold-300"], roughness: 0.14 }),
+      heads: new MeshPhysicalMaterial({
+        color: neutralWhite,
+        metalness: 0.35,
+        roughness: 0.26,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.18,
+        emissive: neutralWhite,
+        emissiveIntensity: 0.52,
+        envMapIntensity: 0.95,
+      }),
+      tails: new MeshPhysicalMaterial({
+        color: neutralWhite,
+        metalness: 0.38,
+        roughness: 0.26,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.18,
+        emissive: neutralWhite,
+        emissiveIntensity: 0.48,
+        envMapIntensity: 1.0,
+      }),
+      facet: gold({
+        color: palette["--ic-gold-100"],
+        metalness: 0.7,
+        roughness: 0.16,
+        emissive: palette["--ic-gold-300"],
+        emissiveIntensity: 0.25,
+        flatShading: true,
+      }),
+      polished: gold({
+        color: palette["--ic-gold-100"],
+        metalness: 0.72,
+        roughness: 0.14,
+        emissive: palette["--ic-gold-300"],
+        emissiveIntensity: 0.22,
+      }),
       onyx: new MeshPhysicalMaterial({
         color: palette["--ic-void"],
         roughness: 0.1,
