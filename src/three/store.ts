@@ -103,6 +103,16 @@ export const motion = {
   /** Pointer position, -1..1, for a gentle parallax on the Full tier. */
   pointerX: 0,
   pointerY: 0,
+  /** User click / drag rotation offsets and inertia for the 3D coin. */
+  userRotY: 0,
+  userRotX: 0,
+  userVelY: 0,
+  isDraggingCoin: false,
+  coinClickAt: 0,
+  /** Projected screen-space center and radius (px) of the 3D coin for hit-testing. */
+  coinScreenX: 0,
+  coinScreenY: 0,
+  coinScreenR: 0,
 };
 
 export function resetMotion(): void {
@@ -111,6 +121,11 @@ export function resetMotion(): void {
   motion.entered[0] = true;
   motion.dropArmedAt = 0;
   motion.stampAt = 0;
+  motion.userRotY = 0;
+  motion.userRotX = 0;
+  motion.userVelY = 0;
+  motion.isDraggingCoin = false;
+  motion.coinClickAt = 0;
 }
 
 // Development only: inspect the stage from the browser console (window.__stage.getState()).

@@ -9,6 +9,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, Mesh, PerspectiveCamera, PlaneGeometry, ShaderMaterial } from "three";
 import type { Palette } from "../colors";
+import { motion } from "../store";
 
 /** Scales a unit plane at `depth` in front of the camera so it fills the view, with margin. */
 function useCover(ref: React.RefObject<Mesh | null>, depth: number, margin = 1.15) {
@@ -28,12 +29,6 @@ const satinVertex = /* glsl */ `
   void main() {
     vUv = uv;
     vec3 p = position;
-    float t = uTime * 0.12;
-    // Long diagonal folds, like draped satin.
-    float fold = sin(p.x * 5.0 + p.y * 2.2 + t * 2.0) * 0.5
-               + sin(p.x * 2.1 - p.y * 4.3 - t * 1.3) * 0.35
-               + sin(p.x * 9.0 + p.y * 1.3 + t * 3.1) * 0.12;
-    p.z += fold * uAmp;
     vPos = (modelMatrix * vec4(p, 1.0)).xyz;
     gl_Position = projectionMatrix * viewMatrix * vec4(vPos, 1.0);
   }
@@ -41,29 +36,16 @@ const satinVertex = /* glsl */ `
 
 const satinFragment = /* glsl */ `
   uniform vec3 uDeep;
-  uniform vec3 uFold;
-  uniform vec3 uSheen;
-  uniform vec3 uWarm;
   varying vec3 vPos;
   varying vec2 vUv;
   void main() {
-    vec3 n = normalize(cross(dFdx(vPos), dFdy(vPos)));
-    vec3 key = normalize(vec3(-0.6, 0.7, 0.5));      // warm key from the top left, as in Logo.jpg
-    float diff = clamp(dot(n, key), 0.0, 1.0);
-    vec3 h = normalize(key + vec3(0.0, 0.0, 1.0));
-    float sheen = pow(clamp(dot(n, h), 0.0, 1.0), 18.0);
-    vec3 col = mix(uDeep, uFold, diff * 0.6);
-    col += uSheen * sheen * 0.45;
-    // Vignette toward the edges, a warm lift near the top left.
-    float v = smoothstep(1.05, 0.25, distance(vUv, vec2(0.5)));
-    col *= mix(0.2, 0.9, v);
-    col += uWarm * 0.05 * smoothstep(0.9, 0.0, distance(vUv, vec2(0.2, 0.9)));
-    gl_FragColor = vec4(col, 1.0);
+    gl_FragColor = vec4(uDeep, 1.0);
     #include <colorspace_fragment>
   }
 `;
 
 export function Satin({ palette, animate }: { palette: Palette; animate: boolean }) {
+  void animate;
   const ref = useRef<Mesh>(null);
   const depth = 11;
   useCover(ref, depth);
@@ -71,12 +53,9 @@ export function Satin({ palette, animate }: { palette: Palette; animate: boolean
     () =>
       new ShaderMaterial({
         uniforms: {
-          uTime: { value: 7 },
-          uAmp: { value: 0.035 },
+          uTime: { value: 0 },
+          uAmp: { value: 0 },
           uDeep: { value: palette["--ic-void"] },
-          uFold: { value: palette["--ic-satin-900"] },
-          uSheen: { value: palette["--ic-satin-500"] },
-          uWarm: { value: palette["--ic-ember"] },
         },
         vertexShader: satinVertex,
         fragmentShader: satinFragment,
@@ -84,12 +63,9 @@ export function Satin({ palette, animate }: { palette: Palette; animate: boolean
       }),
     [palette],
   );
-  const geometry = useMemo(() => new PlaneGeometry(1, 1, 96, 64), []);
+  const geometry = useMemo(() => new PlaneGeometry(1, 1, 8, 8), []);
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => () => geometry.dispose(), [geometry]);
-  useFrame((_, delta) => {
-    if (animate) material.uniforms.uTime.value += delta;
-  });
   return <mesh ref={ref} geometry={geometry} material={material} position={[0, 0, 6.2 - depth]} renderOrder={-10} />;
 }
 
@@ -138,6 +114,7 @@ export function AegeanSky({ palette }: { palette: Palette }) {
 
 const fireFragment = /* glsl */ `
   uniform float uTime;
+  uniform float uIntensity;
   uniform vec3 uDeep;
   uniform vec3 uMid;
   uniform vec3 uHot;
@@ -154,19 +131,22 @@ const fireFragment = /* glsl */ `
     return v;
   }
   void main() {
-    // Flames only near the left and right edges, rising.
-    float edge = max(smoothstep(0.2, 0.0, vUv.x), smoothstep(0.8, 1.0, vUv.x));
-    vec2 q = vec2(vUv.x * 5.0, vUv.y * 2.4 - uTime * 0.35);
-    float f = fbm(q + fbm(q + uTime * 0.05));
-    float flame = smoothstep(0.42, 0.95, f + (1.0 - vUv.y) * 0.25) * edge;
-    vec3 col = mix(uDeep, uMid, smoothstep(0.0, 0.5, flame));
-    col = mix(col, uHot, smoothstep(0.55, 1.0, flame));
-    gl_FragColor = vec4(col * flame, flame * 0.55);
+    if (uIntensity <= 0.005) discard;
+    // Flamy orange rising from the bottom and curling up the left/right edges against pure black.
+    float sideEdge = max(smoothstep(0.32, 0.0, vUv.x), smoothstep(0.68, 1.0, vUv.x));
+    float bottomRise = smoothstep(0.62, 0.0, vUv.y);
+    float mask = clamp(sideEdge * 0.85 + bottomRise * 0.95, 0.0, 1.0);
+    vec2 q = vec2(vUv.x * 4.6, vUv.y * 2.6 - uTime * 0.48);
+    float f = fbm(q + fbm(q + uTime * 0.08));
+    float flame = smoothstep(0.34, 0.92, f + (1.0 - vUv.y) * 0.34) * mask * uIntensity;
+    vec3 col = mix(uDeep, uMid, smoothstep(0.0, 0.45, flame));
+    col = mix(col, uHot, smoothstep(0.5, 0.98, flame));
+    gl_FragColor = vec4(col * flame * 1.25, flame * 0.78);
     #include <colorspace_fragment>
   }
 `;
 
-/** Pinned to the camera as a child, one unit in front of it. */
+/** Pinned to the camera as a child, one unit in front of it. Active in Intro (Chapter 0), fades to 0 on Main Home Page. */
 export function Firelight({ palette }: { palette: Palette }) {
   const ref = useRef<Mesh>(null);
   const { camera, size } = useThree();
@@ -175,6 +155,7 @@ export function Firelight({ palette }: { palette: Palette }) {
       new ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
+          uIntensity: { value: 1 },
           uDeep: { value: palette["--ic-ember-deep"] },
           uMid: { value: palette["--ic-ember"] },
           uHot: { value: palette["--ic-ember-hot"] },
@@ -197,6 +178,15 @@ export function Firelight({ palette }: { palette: Palette }) {
   }, [camera, size]);
   useFrame((_, delta) => {
     material.uniforms.uTime.value += delta;
+    // Bold flamy orange in the Intro (Chapter 0), fading smoothly to 0 so the main home page is pure black.
+    const inIntro = !motion.entered[1];
+    const targetIntensity = inIntro ? Math.max(0, 1 - motion.progress[0] * 1.15) : 0;
+    const cur = material.uniforms.uIntensity.value as number;
+    const next = cur + (targetIntensity - cur) * Math.min(1, delta * 8);
+    material.uniforms.uIntensity.value = next;
+    if (ref.current) {
+      ref.current.visible = next > 0.005;
+    }
   });
   return (
     <mesh ref={ref} material={material} position={[0, 0, -1]} renderOrder={20}>

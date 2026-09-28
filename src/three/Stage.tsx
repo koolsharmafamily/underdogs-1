@@ -20,17 +20,105 @@ export default function Stage() {
 
   useEffect(() => {
     const onVisibility = () => setHidden(document.hidden);
-    const onPointer = (e: PointerEvent) => {
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let lastMoveTime = 0;
+    let movedDist = 0;
+
+    const isInteractiveDomTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false;
+      return Boolean(target.closest("a, button, input, textarea, select, label, summary, [role='button']"));
+    };
+
+    const isInsideCoin = (clientX: number, clientY: number): boolean => {
+      if (motion.coinScreenR <= 8) return false;
+      const dx = clientX - motion.coinScreenX;
+      const dy = clientY - motion.coinScreenY;
+      return Math.hypot(dx, dy) <= motion.coinScreenR * 1.08;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0 || isInteractiveDomTarget(e.target)) return;
+      if (!isInsideCoin(e.clientX, e.clientY)) return;
+      dragging = true;
+      motion.isDraggingCoin = true;
+      motion.userVelY = 0;
+      startX = e.clientX;
+      startY = e.clientY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastMoveTime = performance.now();
+      movedDist = 0;
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
       motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
       motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+
+      if (dragging) {
+        const now = performance.now();
+        const dt = Math.max(8, now - lastMoveTime) / 1000;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        movedDist += Math.hypot(dx, dy);
+        lastX = e.clientX;
+        lastY = e.clientY;
+        lastMoveTime = now;
+
+        motion.userRotY += dx * 0.014;
+        motion.userRotX = Math.max(-0.65, Math.min(0.65, motion.userRotX + dy * 0.008));
+        motion.userVelY = (dx * 0.014) / dt;
+        return;
+      }
+
+      if (!isInteractiveDomTarget(e.target) && isInsideCoin(e.clientX, e.clientY)) {
+        if (document.body.style.cursor !== "grab") {
+          document.body.style.cursor = "grab";
+        }
+      } else if (document.body.style.cursor === "grab" || document.body.style.cursor === "grabbing") {
+        document.body.style.cursor = "";
+      }
     };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      motion.isDraggingCoin = false;
+      document.body.style.userSelect = "";
+
+      const total = Math.max(movedDist, Math.hypot(e.clientX - startX, e.clientY - startY));
+      if (total < 8) {
+        // Click on the coin: rotate 180° (flip between Heads and Tails) with a glint flash.
+        motion.userRotY += Math.PI;
+        motion.userRotX = 0;
+        motion.userVelY = 0;
+        motion.coinClickAt = performance.now() / 1000;
+      }
+
+      document.body.style.cursor = isInsideCoin(e.clientX, e.clientY) ? "grab" : "";
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerup", onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", onPointerUp, { passive: true });
     // Avoids the blank 300 × 150 canvas some browsers show on first layout.
     const t = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
       window.clearTimeout(t);
     };
   }, []);

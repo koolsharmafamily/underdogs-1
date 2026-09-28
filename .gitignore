@@ -50,3 +50,6 @@ next-env.d.ts
 /Post example.png
 /Logo.jpg
 
+
+.vercel
+.env*

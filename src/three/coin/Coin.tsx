@@ -136,10 +136,26 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
     const gold = (p: Partial<ConstructorParameters<typeof MeshPhysicalMaterial>[0]> = {}) =>
       new MeshPhysicalMaterial({ color: palette["--ic-gold-300"], metalness: 1, roughness: 0.3, ...p });
     return {
-      edge: gold({ color: palette["--ic-gold-500"], roughness: 0.34, bumpMap: edgeBump, bumpScale: 3 }),
-      bead: gold({ color: palette["--ic-gold-100"], roughness: 0.22 }),
-      heads: gold({ color: palette["--ic-ivory"], roughness: 0.3, anisotropy: 0.35, emissive: palette["--ic-ivory"], emissiveIntensity: 0.42 }),
-      tails: gold({ color: palette["--ic-ivory"], roughness: 0.3, anisotropy: 0.35, emissive: palette["--ic-ivory"], emissiveIntensity: 0.3 }),
+      edge: gold({ color: palette["--ic-gold-500"], roughness: 0.3, bumpMap: edgeBump, bumpScale: 2.5 }),
+      bead: gold({ color: palette["--ic-gold-100"], roughness: 0.18, envMapIntensity: 1.4 }),
+      heads: gold({
+        color: palette["--ic-ivory"],
+        metalness: 0.92,
+        roughness: 0.22,
+        anisotropy: 0.35,
+        emissive: palette["--ic-ivory"],
+        emissiveIntensity: 0.15,
+        envMapIntensity: 1.35,
+      }),
+      tails: gold({
+        color: palette["--ic-ivory"],
+        metalness: 0.92,
+        roughness: 0.22,
+        anisotropy: 0.35,
+        emissive: palette["--ic-ivory"],
+        emissiveIntensity: 0.15,
+        envMapIntensity: 1.35,
+      }),
       facet: gold({ color: palette["--ic-gold-100"], roughness: 0.16, flatShading: true }),
       polished: gold({ color: palette["--ic-gold-300"], roughness: 0.14 }),
       onyx: new MeshPhysicalMaterial({
@@ -162,12 +178,12 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
     mat.heads.map = heads?.map ?? null;
     mat.heads.emissiveMap = heads?.map ?? null;
     mat.heads.bumpMap = heads?.bump ?? null;
-    mat.heads.bumpScale = 2.2;
+    mat.heads.bumpScale = 0.35;
     mat.heads.needsUpdate = true;
     mat.tails.map = tails?.map ?? null;
     mat.tails.emissiveMap = tails?.map ?? null;
     mat.tails.bumpMap = tails?.bump ?? null;
-    mat.tails.bumpScale = 3;
+    mat.tails.bumpScale = 1.6;
     mat.tails.needsUpdate = true;
   }, [mat, heads, tails]);
 
@@ -236,12 +252,12 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
       <mesh geometry={geo.face} material={mat.tails} position={[0, 0, -FACE_Z]} rotation={[0, Math.PI, 0]} />
       <instancedMesh ref={beads} args={[geo.bead, mat.bead, BEADS_PER_SIDE * 2]} />
 
-      <mesh ref={dome} geometry={geo.domeGeo} material={mat.onyx} />
-      <group ref={eyeL} position={left.position} rotation={left.rotation}>
+      <mesh ref={dome} geometry={geo.domeGeo} material={mat.onyx} visible={false} />
+      <group ref={eyeL} position={left.position} rotation={left.rotation} visible={false}>
         <mesh geometry={geo.arm} material={mat.facet} rotation={[0, 0, Math.PI / 4]} />
         <mesh geometry={geo.arm} material={mat.facet} rotation={[0, 0, -Math.PI / 4]} />
       </group>
-      <group ref={eyeR} position={right.position} rotation={right.rotation}>
+      <group ref={eyeR} position={right.position} rotation={right.rotation} visible={false}>
         <mesh geometry={geo.arm} material={mat.facet} rotation={[0, 0, Math.PI / 4]} />
         <mesh geometry={geo.arm} material={mat.facet} rotation={[0, 0, -Math.PI / 4]} />
       </group>
@@ -251,8 +267,14 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
         material={mat.polished}
         position={[0, LOGO_FACE.smileTop - 0.02, domeZ(0, -0.2) - 0.035]}
         rotation={[0.12, 0, 0]}
+        visible={false}
       />
-      <group ref={tongue} position={[0, LOGO_FACE.tongueY + 0.07, domeZ(0, LOGO_FACE.tongueY) + 0.02]} rotation={[0.25, 0, 0]}>
+      <group
+        ref={tongue}
+        position={[0, LOGO_FACE.tongueY + 0.07, domeZ(0, LOGO_FACE.tongueY) + 0.02]}
+        rotation={[0.25, 0, 0]}
+        visible={false}
+      >
         <mesh geometry={geo.tongueGeo} material={mat.polished} />
       </group>
 

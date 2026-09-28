@@ -51,10 +51,10 @@ describe("keyframes", () => {
     expect(at(5, 0)).toEqual(at(4, 1));
   });
 
-  it("spins in the vault, rests on each face in heads or tails, and stands the flute in the drop", () => {
+  it("starts settled on heads in the vault, rests on each face in heads or tails, and stands the flute in the drop", () => {
     const pose = emptyPose();
-    expect(samplePose(0, 0, false, pose).spin).toBeGreaterThan(2);
-    expect(samplePose(0, 1, false, pose).spin).toBeLessThan(0.5);
+    expect(samplePose(0, 0, false, pose)).toMatchObject({ spin: 0, settle: 1, flip: 0 });
+    expect(samplePose(0, 1, false, pose)).toMatchObject({ spin: 0, settle: 1, flip: 0 });
     expect(samplePose(1, 0.2, false, pose).flip).toBe(0);
     expect(samplePose(1, 0.8, false, pose).flip).toBe(1);
     expect(samplePose(2, 1, true, pose).flute).toBe(1);

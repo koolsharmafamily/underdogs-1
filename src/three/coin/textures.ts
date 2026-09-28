@@ -117,18 +117,25 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
   const raised = mode === "height" ? level(1) : col("--ic-gold-100");
   const low = mode === "height" ? level(0.2) : col("--ic-gold-900");
 
-  // Brushed base: a warm radial gradient crossed by fine concentric rings.
+  // Outer brushed gold ring with deep onyx inner field, matching the Heads side contrast.
   if (mode === "color") {
     const g = ctx.createRadialGradient(c * 0.7, c * 0.6, size * 0.05, c, c, c);
     g.addColorStop(0, col("--ic-gold-100"));
-    g.addColorStop(0.45, col("--ic-gold-300"));
+    g.addColorStop(0.5, col("--ic-gold-300"));
     g.addColorStop(1, col("--ic-gold-700"));
     ctx.fillStyle = g;
   } else {
-    ctx.fillStyle = level(0.47);
+    ctx.fillStyle = level(0.55);
   }
   ctx.fillRect(0, 0, size, size);
-  ctx.globalAlpha = mode === "color" ? 0.07 : 0.12;
+
+  // Deep black onyx recessed inner field inside the outer gold ring.
+  ctx.fillStyle = mode === "color" ? col("--ic-void") : level(0.12);
+  ctx.beginPath();
+  ctx.arc(c, c, c * 0.74, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = mode === "color" ? 0.08 : 0.12;
   for (let r = 6; r < c; r += 2.2) {
     ctx.strokeStyle = (r * 7) % 3 < 1.4 ? (mode === "color" ? col("--ic-gold-900") : level(0)) : raised;
     ctx.lineWidth = 0.8;
@@ -145,6 +152,13 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
   ctx.arc(c, c, c * 0.9, 0, Math.PI * 2);
   ctx.stroke();
 
+  // Gold bezel around the black onyx center field.
+  ctx.strokeStyle = raised;
+  ctx.lineWidth = size * 0.008;
+  ctx.beginPath();
+  ctx.arc(c, c, c * 0.74, 0, Math.PI * 2);
+  ctx.stroke();
+
   // The octagram mount: two squares, 45° apart, each a double rule.
   const star = (rad: number, rot: number) => {
     ctx.beginPath();
@@ -157,11 +171,11 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
     }
     ctx.closePath();
   };
-  const R = c * 0.78;
+  const R = c * 0.68;
   ctx.lineJoin = "miter";
   for (const rot of [-Math.PI / 4, 0]) {
-    ctx.fillStyle = mode === "color" ? col("--ic-gold-700") : level(0.33);
-    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = mode === "color" ? col("--ic-onyx") : level(0.22);
+    ctx.globalAlpha = 0.75;
     star(R, rot);
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -193,9 +207,9 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
     }
   }
 
-  // The medallion and the Ionic column at the centre.
+  // The medallion and the Ionic column at the centre: deep black onyx disc with gleaming gold column.
   const m = c * 0.36;
-  ctx.fillStyle = mode === "color" ? col("--ic-gold-300") : level(0.6);
+  ctx.fillStyle = mode === "color" ? col("--ic-void") : level(0.25);
   ctx.beginPath();
   ctx.arc(c, c, m, 0, Math.PI * 2);
   ctx.fill();
@@ -211,8 +225,8 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
   const colScale = (m * 1.1) / 32;
   ctx.translate(c - 14 * colScale, c - 16 * colScale - m * 0.1);
   ctx.scale(colScale, colScale);
-  ctx.strokeStyle = mode === "color" ? col("--ic-gold-900") : level(1);
-  ctx.lineWidth = 1.3;
+  ctx.strokeStyle = mode === "color" ? col("--ic-gold-100") : level(1);
+  ctx.lineWidth = 1.5;
   ctx.lineCap = "round";
   for (const d of COLUMN_PATHS) ctx.stroke(new Path2D(d));
   ctx.restore();
@@ -225,6 +239,7 @@ function drawTails(ctx: CanvasRenderingContext2D, size: number, mode: "color" | 
   ctx.font = `600 ${Math.round(size * 0.042)}px ${display}`;
   arcText(ctx, opts.engraving ?? "MMXXVI", c, c, c * 0.83, Math.PI / 2, size * 0.014, true);
   if (opts.serial) {
+    ctx.fillStyle = mode === "color" ? col("--ic-gold-300") : level(1);
     ctx.font = `600 ${Math.round(size * 0.03)}px ${display}`;
     ctx.textAlign = "center";
     ctx.fillText(opts.serial, c, c + m * 0.72);

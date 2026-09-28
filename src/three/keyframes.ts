@@ -44,8 +44,8 @@ const pose = (p: Partial<Pose>, from: Pose = base): Pose => ({ ...from, ...p });
 // Narrow screens: the coin sits in the upper part, the text below it.
 const up: Partial<Pose> = { x: 0, y: 0.5, s: 0.78 };
 
-const vaultFromW = pose({ y: 0.02, rz: 0.06, s: 0.96, spin: 2.4, settle: 0 });
-const vaultToW = pose({ rx: 0.16, s: 0.92, spin: 0.35, settle: 0.9 });
+const vaultFromW = pose({ y: 0.02, rx: 0.04, rz: 0.03, s: 0.96, spin: 0, settle: 1, flip: 0 });
+const vaultToW = pose({ rx: 0.14, s: 0.94, spin: 0, settle: 1, flip: 0 });
 const headsFromW = pose({ rx: 0.1 });
 const headsToW = pose({ rx: 0.1, flip: 1 });
 const dropToW = pose({ y: -0.36, rx: -1.22, s: 0.82, flip: 1, flute: 1 });
@@ -55,8 +55,8 @@ const keeperFromW = pose({ x: 0.4, s: 1.05, flip: 2 });
 const keeperToW = pose({ x: 0.4, s: 1.05, flip: 2, awake: 1 });
 const dockedW = pose({ x: 0.86, y: -0.74, s: 0.32, flip: 2, awake: 1 });
 
-const vaultFromN = pose({ ...up, y: 0.46, rz: 0.06, s: 0.86, spin: 2.4, settle: 0 });
-const vaultToN = pose({ ...up, rx: 0.16, spin: 0.35, settle: 0.9 });
+const vaultFromN = pose({ ...up, y: 0.46, rx: 0.04, rz: 0.03, s: 0.86, spin: 0, settle: 1, flip: 0 });
+const vaultToN = pose({ ...up, rx: 0.14, spin: 0, settle: 1, flip: 0 });
 const headsFromN = pose({ ...up, rx: 0.1 });
 const headsToN = pose({ ...up, rx: 0.1, flip: 1 });
 const dropToN = pose({ ...up, y: 0.12, rx: -1.22, s: 0.62, flip: 1, flute: 1 });

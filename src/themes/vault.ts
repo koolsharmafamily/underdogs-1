@@ -6,7 +6,7 @@ export const vault: ThemePack = {
   name: "The vault",
   look: "Black satin and marble, copper firelight.",
   vars: {
-    "--bg": "var(--ic-onyx)",
+    "--bg": "var(--ic-void)",
     "--bg-deep": "var(--ic-void)",
     "--surface": "var(--ic-satin-900)",
     "--surface-raised": "var(--ic-satin-700)",

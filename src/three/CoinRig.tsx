@@ -61,6 +61,8 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     impactAt: -10,
     lastStamp: 0,
     stampStart: -10,
+    lastClick: 0,
+    clickStart: -10,
     time: 0,
     first: true,
     frames: 0,
@@ -155,6 +157,24 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     if (target.settle > 0.995) L.spin = face;
     const ry = L.spin + (face - L.spin) * settle + target.flip * Math.PI;
 
+    // 2b. User click-and-drag inertia & click-to-flip response.
+    if (!motion.isDraggingCoin) {
+      if (Math.abs(motion.userVelY) > 0.005) {
+        motion.userRotY += motion.userVelY * dt;
+        motion.userVelY *= Math.exp(-4.2 * dt);
+      } else {
+        motion.userVelY = 0;
+      }
+      motion.userRotX *= Math.exp(-3.5 * dt);
+    }
+
+    if (motion.coinClickAt !== L.lastClick) {
+      L.lastClick = motion.coinClickAt;
+      L.clickStart = L.time;
+    }
+    const sinceClick = L.time - L.clickStart;
+    const clickPop = sinceClick >= 0 && sinceClick < 0.38 ? Math.sin((sinceClick / 0.38) * Math.PI) : 0;
+
     // 3. One sharp impact: the coin rings and wobbles to rest after the drop.
     const sinceImpact = L.time - L.impactAt;
     const wobble = sinceImpact < 2.5 ? Math.exp(-sinceImpact * 2.6) * Math.sin(sinceImpact * 22) : 0;
@@ -172,10 +192,10 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     const root = parts.root;
     const tx = target.x * halfW;
     const ty = target.y * halfH;
-    const ts = target.s * unit * (1 - stamp * 0.16);
-    const trx = target.rx + py * 0.08 + wobble * 0.05;
+    const ts = target.s * unit * (1 - stamp * 0.16 + clickPop * 0.06);
+    const trx = target.rx + motion.userRotX + py * 0.08 + wobble * 0.05;
     const trz = target.rz + wobble * 0.12 + stamp * 0.1;
-    const tRy = ry + px * 0.12;
+    const tRy = ry + motion.userRotY + px * 0.12;
 
     if (still || L.first) {
       root.position.set(tx, ty, target.z);
@@ -186,13 +206,14 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       L.awake = target.awake;
       L.first = false;
     } else {
+      const rotDamp = motion.isDraggingCoin ? 0.05 : 0.16;
       easing.damp(root.position, "x", tx, 0.35, dt);
       easing.damp(root.position, "y", ty, 0.35, dt);
       easing.damp(root.position, "z", target.z, 0.35, dt);
-      easing.damp(root.rotation, "x", trx, 0.3, dt);
-      easing.damp(root.rotation, "y", tRy, 0.18, dt);
+      easing.damp(root.rotation, "x", trx, rotDamp, dt);
+      easing.damp(root.rotation, "y", tRy, rotDamp, dt);
       easing.damp(root.rotation, "z", trz, 0.3, dt);
-      easing.damp(root.scale, "x", ts, 0.3, dt);
+      easing.damp(root.scale, "x", ts, 0.25, dt);
       root.scale.y = root.scale.x;
       root.scale.z = root.scale.x;
       easing.damp(L, "flute", target.flute, 0.4, dt);
@@ -200,12 +221,17 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       easing.damp(L, "awake", target.awake, 0.4, dt);
     }
 
+    // Update screen-space hit-test bounds for click/drag rotation.
+    motion.coinScreenX = (0.5 + root.position.x / Math.max(0.001, 2 * halfW)) * state.size.width;
+    motion.coinScreenY = (0.5 - root.position.y / Math.max(0.001, 2 * halfH)) * state.size.height;
+    motion.coinScreenR = (root.scale.x / Math.max(0.001, 2 * halfH)) * state.size.height;
+
     // Followers: halo, chrome rings, flute.
     follower.current.position.copy(root.position);
     follower.current.scale.copy(root.scale);
     if (full) {
       halo.current.visible = true;
-      mats.halo.opacity = 0.2 + stamp * 0.1 + (sinceImpact < 1 ? (1 - sinceImpact) * 0.25 : 0);
+      mats.halo.opacity = 0.2 + stamp * 0.1 + clickPop * 0.18 + (sinceImpact < 1 ? (1 - sinceImpact) * 0.25 : 0);
     } else {
       halo.current.visible = false;
     }
@@ -239,8 +265,16 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
     }
 
     // Goldie waking up and expressing presence states (idle, listening, thinking, speaking, celebrating, hushed, sorry).
+    // Keep the 3D overlay meshes hidden when awake === 0 so Logo.jpg is 100% crisp and unobstructed on the main home page.
     const gState = useStage.getState().goldieState;
     const awake = Math.max(L.awake, gState !== "idle" ? 1 : 0);
+    const showOverlay = awake > 0.02;
+    parts.dome.visible = showOverlay;
+    parts.eyes[0].visible = showOverlay;
+    parts.eyes[1].visible = showOverlay;
+    parts.smile.visible = showOverlay;
+    parts.tongue.visible = showOverlay;
+
     if (gState === "hushed") {
       parts.onyxMaterial.emissiveIntensity = 0.02;
     } else if (gState === "celebrating") {
@@ -253,7 +287,7 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       parts.onyxMaterial.emissiveIntensity = awake * 0.12;
     }
 
-    if (!still) {
+    if (!still && showOverlay) {
       if (gState === "speaking") {
         parts.tongue.rotation.x = 0.22 + Math.abs(Math.sin(L.time * 14)) * 0.52;
         parts.eyes[0].scale.set(1, 1, 1);
@@ -293,18 +327,18 @@ export function CoinRig({ tier, theme, palette, textures }: Props) {
       }
     }
 
-    // Glints sweep the rim in turn (Full only).
+    // Glints sweep the rim in turn (Full only) and flash when clicked.
     for (let j = 0; j < glints.current.length; j++) {
       const g = glints.current[j];
       if (!g) continue;
-      if (!full) {
+      if (!full && clickPop <= 0.01) {
         g.visible = false;
         continue;
       }
       const cycle = (L.time + j * 1.1) % 3.3;
-      const a = cycle < 0.7 ? Math.sin((cycle / 0.7) * Math.PI) : 0;
+      const a = Math.max(clickPop, cycle < 0.7 ? Math.sin((cycle / 0.7) * Math.PI) : 0);
       g.visible = a > 0.01;
-      g.scale.setScalar(0.08 + a * 0.28);
+      g.scale.setScalar(0.08 + a * 0.3);
       g.material.opacity = a;
     }
   });
