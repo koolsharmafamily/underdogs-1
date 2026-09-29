@@ -12,6 +12,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion, resetMotion, useStage } from "@/three/store";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
+ScrollTrigger.config({ ignoreMobileResize: true, limitCallbacks: true });
 
 const now = () => performance.now() / 1000;
 
@@ -25,16 +26,32 @@ export default function ScrollDriver() {
       for (const el of chapters) {
         const i = Number(el.dataset.chapter);
         const tall = el.classList.contains("chapter-tall") && (tier === "full" || tier === "lite");
+        const stepEls = i === 3 ? Array.from(el.querySelectorAll<HTMLElement>("[data-step]")) : [];
+        let lastFace = el.dataset.face ?? "heads";
+        let lastLit = -1;
+
         ScrollTrigger.create({
           trigger: el,
           start: i === 0 ? "top top" : tall ? "top 50%" : "top 75%",
           end: tall ? "bottom bottom" : i === 5 ? "top 25%" : "bottom 60%",
           onUpdate: (self) => {
             motion.progress[i] = self.progress;
-            if (i === 1) el.dataset.face = self.progress >= 0.5 ? "tails" : "heads";
+            if (i === 1) {
+              const nextFace = self.progress >= 0.5 ? "tails" : "heads";
+              if (nextFace !== lastFace) {
+                lastFace = nextFace;
+                el.dataset.face = nextFace;
+              }
+            }
             if (i === 3) {
               const lit = Math.min(6, Math.floor(self.progress * 6.2));
-              el.querySelectorAll<HTMLElement>("[data-step]").forEach((s) => s.toggleAttribute("data-lit", Number(s.dataset.step) < lit));
+              if (lit !== lastLit) {
+                lastLit = lit;
+                for (let sIdx = 0; sIdx < stepEls.length; sIdx++) {
+                  const stepEl = stepEls[sIdx];
+                  if (stepEl) stepEl.toggleAttribute("data-lit", Number(stepEl.dataset.step) < lit);
+                }
+              }
             }
           },
           onEnter: () => {

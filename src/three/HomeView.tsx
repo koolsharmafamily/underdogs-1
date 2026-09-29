@@ -58,8 +58,8 @@ export default function HomeView({ tier, theme }: { tier: Tier; theme: string })
 
   const animate = tier === "full" || tier === "lite";
   const aegean = theme === "aegean";
-  const confetti = tier === "full" ? 70 : tier === "lite" ? 24 : 16;
-  const stars = tier === "full" ? 520 : 220;
+  const confetti = tier === "full" && !narrow ? 70 : tier !== "still" ? 28 : 16;
+  const stars = tier === "full" && !narrow ? 520 : 220;
 
   return (
     <>
@@ -68,7 +68,7 @@ export default function HomeView({ tier, theme }: { tier: Tier; theme: string })
       </PerspectiveCamera>
 
       {/* Studio light from lightformers only: nothing is fetched. Warm key from the top left, as in Logo.jpg. */}
-      <Environment key={theme} frames={1} resolution={tier === "full" ? 256 : 128}>
+      <Environment key={theme} frames={1} resolution={tier === "full" && !narrow ? 256 : 128}>
         {aegean ? (
           <>
             <Lightformer form="rect" intensity={3} color={palette["--ic-sky"]} position={[-4, 4, 3]} scale={[6, 3, 1]} />

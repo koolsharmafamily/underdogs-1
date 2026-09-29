@@ -127,7 +127,7 @@ const fireFragment = /* glsl */ `
   }
   float fbm(vec2 p) {
     float v = 0.0, a = 0.5;
-    for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
+    for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
     return v;
   }
   void main() {
@@ -136,8 +136,10 @@ const fireFragment = /* glsl */ `
     float sideEdge = max(smoothstep(0.32, 0.0, vUv.x), smoothstep(0.68, 1.0, vUv.x));
     float bottomRise = smoothstep(0.62, 0.0, vUv.y);
     float mask = clamp(sideEdge * 0.85 + bottomRise * 0.95, 0.0, 1.0);
+    if (mask <= 0.005) discard;
     vec2 q = vec2(vUv.x * 4.6, vUv.y * 2.6 - uTime * 0.48);
-    float f = fbm(q + fbm(q + uTime * 0.08));
+    vec2 warp = vec2(sin(q.y * 1.3 + uTime * 0.55), cos(q.x * 1.3 - uTime * 0.4)) * 0.35;
+    float f = fbm(q + warp);
     float flame = smoothstep(0.34, 0.92, f + (1.0 - vUv.y) * 0.34) * mask * uIntensity;
     vec3 col = mix(uDeep, uMid, smoothstep(0.0, 0.45, flame));
     col = mix(col, uHot, smoothstep(0.5, 0.98, flame));
@@ -177,11 +179,15 @@ export function Firelight({ palette }: { palette: Palette }) {
     ref.current?.scale.set(h * (size.width / size.height), h, 1);
   }, [camera, size]);
   useFrame((_, delta) => {
-    material.uniforms.uTime.value += delta;
     // Bold flamy orange in the Intro (Chapter 0), fading smoothly to 0 so the main home page is pure black.
     const inIntro = !motion.entered[1];
     const targetIntensity = inIntro ? Math.max(0, 1 - motion.progress[0] * 1.15) : 0;
     const cur = material.uniforms.uIntensity.value as number;
+    if (cur <= 0.005 && targetIntensity <= 0.005) {
+      if (ref.current && ref.current.visible) ref.current.visible = false;
+      return;
+    }
+    material.uniforms.uTime.value += delta;
     const next = cur + (targetIntensity - cur) * Math.min(1, delta * 8);
     material.uniforms.uIntensity.value = next;
     if (ref.current) {

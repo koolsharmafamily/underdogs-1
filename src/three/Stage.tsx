@@ -4,9 +4,9 @@
   first paint (CanvasHost). Every 3D scene renders into a drei View that
   tracks a DOM slot; never add a second canvas.
 */
-import { PerformanceMonitor, View } from "@react-three/drei";
+import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { NeutralToneMapping } from "three";
 import HomeView from "./HomeView";
 import { motion, useStage } from "./store";
@@ -18,11 +18,14 @@ export default function Stage() {
   const ready = useStage((s) => s.ready);
   const degrade = useStage((s) => s.degrade);
   const [hidden, setHidden] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
+    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
     const onVisibility = () => setHidden(document.hidden);
 
     let dragging = false;
+    let touchDecided = false;
     let startX = 0;
     let startY = 0;
     let lastX = 0;
@@ -44,11 +47,15 @@ export default function Stage() {
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 || isInteractiveDomTarget(e.target)) return;
-      motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
-      motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+      const touch = e.pointerType === "touch";
+      if (!touch) {
+        motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
+        motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+      }
       if (!isInsideCoin(e.clientX, e.clientY)) return;
       dragging = true;
-      motion.isDraggingCoin = true;
+      touchDecided = !touch;
+      motion.isDraggingCoin = !touch;
       motion.userVelY = 0;
       startX = e.clientX;
       startY = e.clientY;
@@ -56,15 +63,38 @@ export default function Stage() {
       lastY = e.clientY;
       lastMoveTime = performance.now();
       movedDist = 0;
-      document.body.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
+      if (!touch) {
+        document.body.style.cursor = "grabbing";
+        document.body.style.userSelect = "none";
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
-      motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+      const touch = e.pointerType === "touch";
+      if (!touch) {
+        motion.pointerX = (e.clientX / window.innerWidth) * 2 - 1;
+        motion.pointerY = (e.clientY / window.innerHeight) * 2 - 1;
+      }
 
       if (dragging) {
+        const dxTotal = e.clientX - startX;
+        const dyTotal = e.clientY - startY;
+
+        // On touch screens, if the user is scrolling vertically, immediately release coin drag so scrolling is 100% smooth.
+        if (touch && !touchDecided) {
+          if (Math.abs(dyTotal) > 6 && Math.abs(dyTotal) >= Math.abs(dxTotal)) {
+            dragging = false;
+            motion.isDraggingCoin = false;
+            return;
+          }
+          if (Math.abs(dxTotal) > 8 && Math.abs(dxTotal) > Math.abs(dyTotal) * 1.25) {
+            touchDecided = true;
+            motion.isDraggingCoin = true;
+          } else {
+            return;
+          }
+        }
+
         const now = performance.now();
         const dt = Math.max(8, now - lastMoveTime) / 1000;
         const dx = e.clientX - lastX;
@@ -75,36 +105,46 @@ export default function Stage() {
         lastMoveTime = now;
 
         motion.userRotY += dx * 0.014;
-        motion.userRotX = Math.max(-0.65, Math.min(0.65, motion.userRotX + dy * 0.008));
+        if (!touch) {
+          motion.userRotX = Math.max(-0.65, Math.min(0.65, motion.userRotX + dy * 0.008));
+        }
         motion.userVelY = (dx * 0.014) / dt;
         return;
       }
 
-      if (!isInteractiveDomTarget(e.target) && isInsideCoin(e.clientX, e.clientY)) {
-        if (document.body.style.cursor !== "grab") {
-          document.body.style.cursor = "grab";
+      if (!touch) {
+        if (!isInteractiveDomTarget(e.target) && isInsideCoin(e.clientX, e.clientY)) {
+          if (document.body.style.cursor !== "grab") {
+            document.body.style.cursor = "grab";
+          }
+        } else if (document.body.style.cursor === "grab" || document.body.style.cursor === "grabbing") {
+          document.body.style.cursor = "";
         }
-      } else if (document.body.style.cursor === "grab" || document.body.style.cursor === "grabbing") {
-        document.body.style.cursor = "";
       }
     };
 
     const onPointerUp = (e: PointerEvent) => {
       if (!dragging) return;
+      const touch = e.pointerType === "touch";
       dragging = false;
+      touchDecided = false;
       motion.isDraggingCoin = false;
-      document.body.style.userSelect = "";
+      if (!touch) {
+        document.body.style.userSelect = "";
+      }
 
       const total = Math.max(movedDist, Math.hypot(e.clientX - startX, e.clientY - startY));
       if (total < 8) {
-        // Click on the coin: rotate 180° (flip between Heads and Tails) with a glint flash.
+        // Click/tap on the coin: rotate 180° (flip between Heads and Tails) with a glint flash.
         motion.userRotY += Math.PI;
         motion.userRotX = 0;
         motion.userVelY = 0;
         motion.coinClickAt = performance.now() / 1000;
       }
 
-      document.body.style.cursor = isInsideCoin(e.clientX, e.clientY) ? "grab" : "";
+      if (!touch) {
+        document.body.style.cursor = isInsideCoin(e.clientX, e.clientY) ? "grab" : "";
+      }
     };
 
     const onPointerLeave = () => {
@@ -140,6 +180,7 @@ export default function Stage() {
 
   const anySlot = Boolean(slots.home);
   const frameloop = hidden || !anySlot ? "never" : tier === "still" ? "demand" : "always";
+  const dpr: [number, number] = isTouch ? [1, 1.25] : tier === "full" ? [1, 1.75] : [1, 1.5];
 
   return (
     <div
@@ -149,9 +190,9 @@ export default function Stage() {
       }`}
     >
       <Canvas
-        dpr={tier === "full" ? [1, 1.75] : [1, 1.5]}
+        dpr={dpr}
         frameloop={frameloop}
-        gl={{ antialias: tier === "full", alpha: true, powerPreference: "high-performance" }}
+        gl={{ antialias: tier === "full" && !isTouch, alpha: true, powerPreference: "high-performance" }}
         onCreated={({ gl }) => {
           gl.toneMapping = NeutralToneMapping;
           gl.toneMappingExposure = 1.05;
@@ -160,11 +201,7 @@ export default function Stage() {
         style={{ pointerEvents: "none" }}
       >
         {tier === "full" ? <PerformanceMonitor onDecline={degrade} flipflops={2} /> : null}
-        {slots.home ? (
-          <View track={slots.home as RefObject<HTMLElement>} index={1}>
-            <HomeView tier={tier} theme={theme} />
-          </View>
-        ) : null}
+        {slots.home ? <HomeView tier={tier} theme={theme} /> : null}
       </Canvas>
     </div>
   );
