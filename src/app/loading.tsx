@@ -1,4 +1,5 @@
-import { IonicColumn } from "@/components/brand/IonicColumn";
+import Image from "next/image";
+import logo from "../../public/brand/logo.jpg";
 
 export default function Loading() {
   return (
@@ -15,18 +16,26 @@ export default function Loading() {
       />
 
       <div className="relative z-10 flex flex-col items-center gap-6">
-        {/* Glowing Ionic Column Emblem */}
+        {/* Underdogs Logo Coin Emblem */}
         <div className="relative flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-accent/15 blur-xl animate-ping" style={{ animationDuration: "3s" }} />
-          <div className="relative grid h-16 w-16 place-items-center rounded-2xl border border-rule/60 bg-surface/80 shadow-[0_0_30px_rgba(203,176,116,0.15)] backdrop-blur-md">
-            <IonicColumn className="h-9 w-8 text-accent animate-pulse" />
+          <div className="absolute inset-0 rounded-full bg-accent/20 blur-xl animate-ping" style={{ animationDuration: "3s" }} />
+          <div className="relative h-24 w-24 sm:h-28 sm:w-28 overflow-hidden rounded-full border border-rule/60 bg-surface/80 shadow-[0_0_30px_rgba(203,176,116,0.2)] backdrop-blur-md">
+            <Image
+              src={logo}
+              alt="Underdogs Innercircle"
+              fill
+              sizes="7rem"
+              priority
+              className="coin-photo object-cover"
+            />
+            <span className="coin-glint" aria-hidden />
           </div>
         </div>
 
         {/* Wordmark */}
         <div className="flex flex-col items-center gap-1.5">
           <span className="eyebrow tracking-[0.28em] text-[0.7rem] text-accent-muted">Nagpur · Members Only</span>
-          <h2 className="diamond-caps font-display text-2xl font-bold tracking-[0.14em] sm:text-3xl">
+          <h2 className="diamond-caps font-display text-2xl font-bold tracking-[0.14em] sm:text-3xl text-heading">
             UNDERDOGS INNERCIRCLE
           </h2>
         </div>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { BrandLoader } from "@/components/brand/BrandLoader";
 import { DemoPanel } from "@/components/demo/DemoPanel";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <style id="theme-packs" dangerouslySetInnerHTML={{ __html: themeCss() }} />
       </head>
       <body className="flex min-h-dvh flex-col">
+        <BrandLoader />
         <CanvasHost />
         <SiteHeader />
         <main id="main" className="relative z-10 flex-1">

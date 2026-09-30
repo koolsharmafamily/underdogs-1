@@ -200,30 +200,37 @@
     90% { transform: scale(0.4) rotate(90deg); opacity: 0.6; }
   }
 
-  /* The HTML coin: shown until the 3D coin is on screen, and for good without WebGL. */
-  /*
-    Placed exactly where the 3D coin draws (keyframes: vault, first pose), so
-    the hand-over is invisible. Coin radius = s × min(0.8 × half-width, 0.5 ×
-    half-height); the coin fills 76.4% of Logo.jpg's width, centred at (49.8%, 50.6%).
-  */
+  /* Brand Loader: visible instantly on initial page load with Underdogs logo; dissolves when 3D stage is ready */
+  #brand-loader {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), visibility 700ms ease;
+  }
+  html[data-stage="ready"] #brand-loader {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* The 2D HTML coin: only shown on devices that do not support WebGL (data-tier="none").
+     Normal devices see the logo in the loader, and the homepage opens directly with the 3D coin. */
   .coin-fallback {
+    display: none;
+  }
+  html[data-tier="none"] .coin-fallback {
+    display: block;
     position: absolute;
     left: 50vw;
     top: 27svh;
     width: calc(0.86 * min(80vw, 50svh) / 0.764);
     transform: translate(-49.8%, -50.6%);
-    transition: opacity 1000ms cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity;
   }
   @media (min-width: 640px) and (min-aspect-ratio: 9/10) {
-    .coin-fallback {
+    html[data-tier="none"] .coin-fallback {
       left: 71vw;
       top: 49svh;
       width: calc(0.96 * min(80vw, 50svh) / 0.764);
     }
-  }
-  html[data-stage="ready"] .coin-fallback {
-    opacity: 0;
   }
   .coin-glint {
     position: absolute;

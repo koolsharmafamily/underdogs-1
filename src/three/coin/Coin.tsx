@@ -24,11 +24,8 @@ import {
   MeshStandardMaterial,
   Object3D,
   Quaternion,
-  RepeatWrapping,
   Shape,
   SphereGeometry,
-  SRGBColorSpace,
-  TextureLoader,
   Vector2,
   Vector3,
   type Texture,
@@ -241,21 +238,6 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
     const holder = glbHolder.current;
     const clonedMaterials: MeshStandardMaterial[] = [];
 
-    // Load 2K PBR texture maps
-    const texLoader = new TextureLoader();
-    const baseColorMap = texLoader.load("/models/textures/coin_base_color_2k.png");
-    baseColorMap.colorSpace = SRGBColorSpace;
-    baseColorMap.wrapS = RepeatWrapping;
-    baseColorMap.wrapT = RepeatWrapping;
-
-    const pbrMap = texLoader.load("/models/textures/coin_metallic_roughness_2k.png");
-    pbrMap.wrapS = RepeatWrapping;
-    pbrMap.wrapT = RepeatWrapping;
-
-    const normalMap = texLoader.load("/models/textures/coin_normal_2k.png");
-    normalMap.wrapS = RepeatWrapping;
-    normalMap.wrapT = RepeatWrapping;
-
     loadCoinGlb()
       .then((gltf) => {
         if (!alive || !holder) return;
@@ -269,77 +251,110 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
         coinNode.scale.setScalar(GLB_UNIT_SCALE);
         coinNode.updateMatrix();
 
-        // Cache the 3 distinct mesh groups so they can be animated independently:
+        // 1. Locate or dynamically construct the 3 distinct mesh groups:
         // (1) outer_gold_ring
         // (2) inner_black_disc
         // (3) face_elements
-        const outer = (coinNode.getObjectByName("outer_gold_ring") as Group) || null;
-        const inner = (coinNode.getObjectByName("inner_black_disc") as Group) || null;
-        const face = (coinNode.getObjectByName("face_elements") as Group) || null;
+        let outer = (coinNode.getObjectByName("outer_gold_ring") as Group) || null;
+        let inner = (coinNode.getObjectByName("inner_black_disc") as Group) || null;
+        let face = (coinNode.getObjectByName("face_elements") as Group) || null;
+
+        if (!outer || !inner || !face) {
+          outer = new Group();
+          outer.name = "outer_gold_ring";
+          inner = new Group();
+          inner.name = "inner_black_disc";
+          face = new Group();
+          face.name = "face_elements";
+
+          const outerNames = new Set([
+            "core", "rim_lip", "rim_beads", "lettering", "bezel_outer", "filigree", "bezel_inner",
+            "rim_lip_back", "rim_beads_back", "lettering_back", "bezel_outer_back", "filigree_back", "bezel_inner_back",
+          ]);
+          const discNames = new Set([
+            "filigree_ground", "enamel_center", "filigree_ground_back", "enamel_center_back",
+          ]);
+          const faceNames = new Set([
+            "eyes", "mouth", "tongue", "eyes_back", "mouth_back", "tongue_back",
+          ]);
+
+          const toReassign: Array<{ obj: Object3D; target: Group }> = [];
+          coinNode.traverse((child) => {
+            if (outerNames.has(child.name)) toReassign.push({ obj: child, target: outer! });
+            else if (discNames.has(child.name)) toReassign.push({ obj: child, target: inner! });
+            else if (faceNames.has(child.name)) toReassign.push({ obj: child, target: face! });
+          });
+
+          for (const { obj, target } of toReassign) {
+            target.add(obj);
+          }
+          coinNode.add(outer);
+          coinNode.add(inner);
+          coinNode.add(face);
+        }
 
         outerRingRef.current = outer;
         innerDiscRef.current = inner;
         faceElementsRef.current = face;
 
-        // Calibrate the GLB materials with 2K PBR textures to match the brand champagne-gold tokens.
+        // 2. Calibrate GLB materials with enhanced environment reflections and brand lighting
         coinNode.traverse((obj) => {
           if (!(obj instanceof Mesh)) return;
           const origMat = obj.material as MeshStandardMaterial | undefined;
           if (!origMat) return;
 
-          if (origMat.name === "enamel_black" || obj.name.includes("enamel") || obj.name.includes("disc")) {
-            mat.onyx.normalMap = normalMap;
-            mat.onyx.normalScale.set(0.12, 0.12);
-            mat.onyx.needsUpdate = true;
-            obj.material = mat.onyx;
+          // Deep Piano-Black Enamel for inner disc & filigree ground
+          if (
+            origMat.name === "enamel_black" ||
+            obj.name.includes("enamel") ||
+            obj.name.includes("disc") ||
+            obj.name.includes("ground")
+          ) {
+            const m = mat.onyx.clone();
+            clonedMaterials.push(m as unknown as MeshStandardMaterial);
+            m.roughness = 0.08;
+            m.metalness = 0;
+            m.clearcoat = 1;
+            m.clearcoatRoughness = 0.04;
+            obj.material = m;
             return;
           }
 
           const m = origMat.clone();
           clonedMaterials.push(m);
 
-          if (origMat.name === "gold_polished" || obj.name.includes("eyes") || obj.name.includes("mouth") || obj.name.includes("tongue")) {
-            m.color.copy(palette["--ic-gold-100"]);
-            m.metalness = 0.85;
-            m.roughness = 0.12;
-            m.normalMap = normalMap;
-            m.normalScale.set(0.18, 0.18);
+          if (
+            origMat.name === "gold_polished" ||
+            obj.name.includes("eyes") ||
+            obj.name.includes("mouth") ||
+            obj.name.includes("tongue")
+          ) {
+            m.metalness = 0.95;
+            m.roughness = 0.10;
             m.emissive.copy(palette["--ic-gold-300"]);
-            m.emissiveIntensity = 0.35;
+            m.emissiveIntensity = 0.22;
             m.envMapIntensity = 1.6;
-          } else if (origMat.name === "gold_lettering") {
-            m.map = baseColorMap;
-            m.roughnessMap = pbrMap;
-            m.metalnessMap = pbrMap;
-            m.normalMap = normalMap;
-            m.normalScale.set(0.3, 0.3);
-            m.color.copy(palette["--ic-gold-100"]);
-            m.metalness = 0.82;
-            m.roughness = 0.22;
+          } else if (origMat.name === "gold_lettering" || obj.name.includes("lettering")) {
+            m.metalness = 0.88;
+            m.roughness = 0.38;
             m.emissive.copy(palette["--ic-gold-300"]);
-            m.emissiveIntensity = 0.32;
+            m.emissiveIntensity = 0.18;
             m.envMapIntensity = 1.5;
           } else {
             // outer_gold_ring core, rim lip, and rim beads
-            m.map = baseColorMap;
-            m.roughnessMap = pbrMap;
-            m.metalnessMap = pbrMap;
-            m.normalMap = normalMap;
-            m.normalScale.set(0.35, 0.35);
-            m.color.copy(palette["--ic-gold-bright"]);
-            m.metalness = 0.84;
-            m.roughness = 0.22;
+            m.metalness = 0.92;
+            m.roughness = 0.32;
             m.emissive.copy(palette["--ic-gold-300"]);
-            m.emissiveIntensity = 0.28;
+            m.emissiveIntensity = 0.18;
             m.envMapIntensity = 1.5;
           }
           m.needsUpdate = true;
           obj.material = m;
         });
 
-        // Wrap `eyes` and `tongue` on face_elements in pivot groups at their natural hinges so Goldie can blink and flick.
+        // 3. Wrap `eyes` and `tongue` on face_elements in pivot groups at their natural hinges
         const eyesMesh = coinNode.getObjectByName("eyes");
-        if (eyesMesh && eyesMesh.parent) {
+        if (eyesMesh && eyesMesh.parent && !coinNode.getObjectByName("eyes_pivot")) {
           const parent = eyesMesh.parent;
           const pivot = new Group();
           pivot.name = "eyes_pivot";
@@ -351,7 +366,7 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
         }
 
         const tongueMesh = coinNode.getObjectByName("tongue");
-        if (tongueMesh && tongueMesh.parent) {
+        if (tongueMesh && tongueMesh.parent && !coinNode.getObjectByName("tongue_pivot")) {
           const parent = tongueMesh.parent;
           const pivot = new Group();
           pivot.name = "tongue_pivot";
@@ -374,9 +389,6 @@ export const Coin = forwardRef<CoinParts, Props>(function Coin({ palette, heads,
       alive = false;
       holder?.clear();
       for (const m of clonedMaterials) m.dispose();
-      baseColorMap.dispose();
-      pbrMap.dispose();
-      normalMap.dispose();
     };
   }, [palette, mat.onyx]);
 
