@@ -7,20 +7,18 @@ import { Lockup } from "../brand/Lockup";
 type NavItem = {
   readonly href: string;
   readonly label: string;
-  readonly homeHash?: string;
 };
 
 const NAV: readonly NavItem[] = [
   { href: "/nights", label: "Nights" },
   { href: "/innercircle", label: "Innercircle" },
-  { href: "/concierge", homeHash: "#concierge", label: "Concierge" },
+  { href: "/concierge", label: "Concierge" },
   { href: "/me", label: "Your coin" },
   { href: "/crew", label: "Crew" },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
 
   return (
     <header className="relative z-10 border-b border-border/60">
@@ -37,12 +35,11 @@ export function SiteHeader() {
         <nav aria-label="Main" className="overflow-x-auto scrollbar-none">
           <ul className="flex items-center text-xs sm:text-sm sm:gap-1.5">
             {NAV.map((item) => {
-              const targetHref = item.homeHash && isHome ? item.homeHash : item.href;
               const isActive = pathname === item.href;
               return (
                 <li key={item.label}>
                   <Link
-                    href={targetHref}
+                    href={item.href}
                     title={item.label === "Concierge" ? "Goldie · AI Concierge" : undefined}
                     className={`inline-flex min-h-11 items-center rounded-full px-2 sm:px-3 whitespace-nowrap transition-colors hover:text-accent ${
                       isActive ? "text-accent font-medium" : "text-text-dim"
